@@ -1,0 +1,7 @@
+interface:
+  display_name: "B2B Image"
+  short_description: "Generate B2B product images from marketing plans."
+  default_prompt: "Use $b2b-image to generate numbered JPG product images from a marketing plan, with optional reference photos."
+
+policy:
+  allow_implicit_invocation: true
