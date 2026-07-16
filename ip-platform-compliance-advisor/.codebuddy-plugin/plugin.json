@@ -1,0 +1,52 @@
+{
+  "name": "ip-platform-compliance-advisor",
+  "version": "1.0.0",
+  "description": "Enterprise IP and platform compliance advisor for Alibaba.com sellers of sports and fitness products, including Yoga, Pilates, Fitness, Home Gym, Training Accessories, Outdoor Sports, Recovery & Wellness, and Sports Protective Gear: trademark/patent/image-copyright risk screening, restricted categories, false-advertising and certification compliance checks.",
+  "author": {
+    "name": "利丰国际站运营团队",
+    "email": "ops@lifeng-intl.example"
+  },
+  "agents": ["./agents/ip-platform-compliance-advisor.md"],
+
+  "expertType": "agent",
+  "agentName": "ip-platform-compliance-advisor",
+
+  "displayName": {
+    "en": "IP & Platform Compliance Advisor",
+    "zh": "知识产权与平台合规顾问"
+  },
+  "profession": {
+    "en": "IP & Cross-border E-commerce Compliance Consultant",
+    "zh": "知识产权与跨境电商合规顾问"
+  },
+  "displayDescription": {
+    "en": "IP & platform compliance screener for Alibaba.com: trademark, patent, image copyright, restricted categories, false-advertising and certification risks, graded with alternatives.",
+    "zh": "阿里国际站合规顾问：商标/专利/图片版权风险、禁限售与虚假宣传初筛，分级并给替代方案。"
+  },
+  "avatar": "avatars/expert.png",
+  "categoryId": "11-SecurityCompliance",
+  "defaultInitPrompt": {
+    "zh": "帮我筛查这条阿里国际站产品链接、标题、关键词、详情页或AI图片Prompt是否存在商标、专利、图片版权、禁限售、虚假宣传、极限词或认证合规风险，按风险分级并给出替代建议。",
+    "en": "Screen my Alibaba.com product link, title, keywords, description or AI image prompt for trademark, patent, image-copyright, restricted-category, false-advertising, superlative or certification risks — grade by severity and suggest alternatives."
+  },
+  "plugin": "ip-platform-compliance-advisor",
+  "tags": [
+    { "en": "Trademark & Brand Word Avoidance", "zh": "商标与品牌词规避" },
+    { "en": "Patent & Image Copyright", "zh": "专利与图片版权" },
+    { "en": "Platform Rules & Certification", "zh": "平台规则与认证合规" }
+  ],
+  "quickPrompts": [
+    {
+      "en": "Screen my Alibaba.com product link, title, keywords, description or AI image prompt for trademark, patent, image-copyright, restricted-category, false-advertising, superlative or certification risks — grade by severity and suggest alternatives.",
+      "zh": "帮我筛查这条阿里国际站产品链接、标题、关键词、详情页或AI图片Prompt是否存在商标、专利、图片版权、禁限售、虚假宣传、极限词或认证合规风险，按风险分级并给出替代建议。"
+    },
+    {
+      "en": "Check this product image or AI image prompt for copyright and platform-compliance risks: brand logos, patented designs, model releases and false or misleading visuals.",
+      "zh": "检查这张产品图或AI图片Prompt是否存在图片版权与平台合规风险：品牌Logo、专利外观、模特授权、虚假画面。"
+    },
+    {
+      "en": "Review my title, keywords and copy for restricted categories, category misplacement, duplicate listing, false claims and superlatives (best / No.1 / 100% / cure / medical).",
+      "zh": "审查我的标题、关键词和文案是否存在禁限售、类目错放、重复铺货、虚假宣传与极限词（best/No.1/100%/cure/medical）风险。"
+    }
+  ]
+}

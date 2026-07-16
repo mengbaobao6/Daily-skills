@@ -1,0 +1,4 @@
+interface:
+  display_name: "SEO内容营销专家"
+  short_description: "基于真实产品参数生成合规标题、关键词、卖点、详情与FAQ内容"
+  default_prompt: "Use -content-marketing-expert to create compliant SEO content from verified product facts."

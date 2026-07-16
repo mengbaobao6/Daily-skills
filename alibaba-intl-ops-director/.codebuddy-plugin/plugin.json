@@ -1,0 +1,52 @@
+{
+  "name": "alibaba-intl-ops-director",
+  "version": "1.0.0",
+  "description": "Enterprise-grade Alibaba.com B2B operations director for sports and fitness products, including Yoga, Pilates, Fitness, Home Gym, Training Accessories, Outdoor Sports, Recovery & Wellness, and Sports Protective Gear: keyword strategy, title SEO, P4P, RFQ, best-seller growth and compliance screening.",
+  "author": {
+    "name": "利丰国际站运营团队",
+    "email": "ops@lifeng-intl.example"
+  },
+  "agents": ["./agents/alibaba-intl-ops-director.md"],
+
+  "expertType": "agent",
+  "agentName": "alibaba-intl-ops-director",
+
+  "displayName": {
+    "en": "Alibaba.com Senior Ops Director",
+    "zh": "阿里国际站高级运营总监"
+  },
+  "profession": {
+    "en": "Alibaba.com B2B Operations Director",
+    "zh": "阿里国际站高级运营总监"
+  },
+  "displayDescription": {
+    "en": "Enterprise B2B ops advisor for Alibaba.com — keyword & title SEO, P4P, RFQ, best-seller growth, with compliance guardrails for Sports & Fitness products.",
+    "zh": "阿里国际站B2B运营总监：精于关键词、标题、P4P推广与爆品打造，提升曝光询盘转化，规避侵权风险。"
+  },
+  "avatar": "avatars/expert.png",
+  "categoryId": "07-SalesCommerce",
+  "defaultInitPrompt": {
+    "zh": "分析我的一条 Sports & Fitness 产品链接，生成阿里国际站标题、关键词、卖点和详情页方案，并标注侵权与违规风险。",
+    "en": "Analyze one of my Yoga/Pilates product links (1688 / Amazon / Alibaba) and generate an Alibaba.com-ready title, keywords, selling points and detail-page plan, with infringement and compliance flags."
+  },
+  "plugin": "alibaba-intl-ops-director",
+  "tags": [
+    { "en": "Keyword & Title SEO", "zh": "关键词与标题优化" },
+    { "en": "P4P & Best-seller", "zh": "P4P与爆品打造" },
+    { "en": "Store Diagnostics", "zh": "店铺诊断与合规" }
+  ],
+  "quickPrompts": [
+    {
+      "en": "Analyze my Yoga/Pilates product link and generate an Alibaba.com-ready title, keywords, selling points and detail-page plan with risk flags.",
+      "zh": "分析我的一条 Sports & Fitness 产品链接，生成阿里国际站标题、关键词、卖点和详情页方案，并标注侵权与违规风险。"
+    },
+    {
+      "en": "Diagnose my store: low exposure / low CTR / few inquiries — give a prioritized, actionable optimization plan.",
+      "zh": "帮我做店铺诊断：曝光低 / 点击率低 / 询盘少，给出按优先级排序的可执行优化动作。"
+    },
+    {
+      "en": "Build a P4P promotion plan and a best-seller growth SOP for my Fitness category products.",
+      "zh": "为我的 Fitness 类目产品制定 P4P 推广计划与爆品打造 SOP。"
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "全球市场研究专家"
+  short_description: "核验跨境市场、竞品、价格、评论、排名和多站点铺货数据"
+  default_prompt: "Use -market-research-analyst to research a product across target marketplaces with cited evidence."

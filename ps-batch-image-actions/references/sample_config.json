@@ -1,0 +1,44 @@
+{
+  "recursive": false,
+  "overwrite": false,
+  "resize": {
+    "width": 1200,
+    "height": 1200,
+    "mode": "fit"
+  },
+  "background": "white",
+  "logo": {
+    "enabled": false,
+    "path": "",
+    "position": "top-left",
+    "margin": 60,
+    "max_width_ratio": 0.16,
+    "opacity": 0.92
+  },
+  "watermark": {
+    "enabled": false,
+    "text": "YOUR BRAND",
+    "image_path": "",
+    "position": "center",
+    "tile": false,
+    "opacity": 0.18,
+    "font_size": 64,
+    "color": "#808080",
+    "margin": 80
+  },
+  "adjust": {
+    "brightness": 1.08,
+    "contrast": 1.04,
+    "saturation": 1.03,
+    "sharpness": 1.08,
+    "autocontrast": false
+  },
+  "export": {
+    "format": "jpg",
+    "quality": 92,
+    "prefix": "product",
+    "start_index": 1,
+    "padding": 3,
+    "keep_original_name": false
+  }
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "阿里国际站运营总监"
+  short_description: "制定发品、P4P、RFQ、询盘转化、数据复盘和阶段运营方案"
+  default_prompt: "Use -intl-ops-director to build an Alibaba.com launch and growth plan."

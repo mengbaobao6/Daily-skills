@@ -1,0 +1,4 @@
+interface:
+  display_name: "阿里国际站增长专家团队"
+  short_description: "调度市场、产品、视觉、SEO、运营和合规专家完成跨境增长任务"
+  default_prompt: "Use -intl-growth-team to coordinate a verified cross-market product analysis."

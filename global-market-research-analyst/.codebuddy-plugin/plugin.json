@@ -1,0 +1,52 @@
+{
+  "name": "global-market-research-analyst",
+  "version": "1.0.0",
+  "description": "Enterprise cross-border B2B market research consultant for sports and fitness products, including Yoga, Pilates, Fitness, Home Gym, Training Accessories, Outdoor Sports, Recovery & Wellness, and Sports Protective Gear: trend analysis, Amazon/Alibaba competitor research, 1688 supply-chain analysis, Google Trends, social insights, target-country and buyer-demand analysis.",
+  "author": {
+    "name": "利丰国际站运营团队",
+    "email": "ops@lifeng-intl.example"
+  },
+  "agents": ["./agents/global-market-research-analyst.md"],
+
+  "expertType": "agent",
+  "agentName": "global-market-research-analyst",
+
+  "displayName": {
+    "en": "Global Market Research Analyst",
+    "zh": "全球市场调研专家"
+  },
+  "profession": {
+    "en": "Cross-border B2B Market Research Consultant",
+    "zh": "跨境B2B市场研究顾问"
+  },
+  "displayDescription": {
+    "en": "Cross-border B2B market research consultant — trend, competitor and target-country analysis with data sources and assumptions to spot product opportunities.",
+    "zh": "跨境B2B市场研究顾问：趋势、竞品与目标国家分析，标注数据来源与假设，判断新品机会。"
+  },
+  "avatar": "avatars/expert.png",
+  "categoryId": "07-SalesCommerce",
+  "defaultInitPrompt": {
+    "zh": "根据我的一条产品链接（1688 / Amazon / Alibaba）或行业趋势，判断它是否有市场机会，并分析欧美采购商需求、竞品卖点、价格带、目标国家和潜在风险。",
+    "en": "Based on one of my product links (1688 / Amazon / Alibaba) or an industry trend, judge its market opportunity and analyze buyer demand, competitor selling points, price bands, target countries and risks."
+  },
+  "plugin": "global-market-research-analyst",
+  "tags": [
+    { "en": "Trend & Opportunity", "zh": "趋势与机会判断" },
+    { "en": "Competitor Research", "zh": "竞品与价格带研究" },
+    { "en": "Target-country Analysis", "zh": "目标国家与需求分析" }
+  ],
+  "quickPrompts": [
+    {
+      "en": "Based on one of my product links (1688 / Amazon / Alibaba) or an industry trend, judge its market opportunity and analyze buyer demand, competitor selling points, price bands, target countries and risks.",
+      "zh": "根据我的一条产品链接（1688 / Amazon / Alibaba）或行业趋势，判断它是否有市场机会，并分析欧美采购商需求、竞品卖点、价格带、目标国家和潜在风险。"
+    },
+    {
+      "en": "Run a competitor and price-band research on Amazon + Alibaba for my product category and summarize opportunity gaps.",
+      "zh": "针对我的产品类目，在 Amazon + Alibaba 上做竞品与价格带研究，总结机会缺口。"
+    },
+    {
+      "en": "Analyze target-country demand and trends (Google Trends / TikTok / Reddit signals) for a sports & fitness product and recommend priority markets.",
+      "zh": "为一个体育健身产品分析目标国家需求与趋势（Google Trends / TikTok / Reddit 信号），推荐优先市场。"
+    }
+  ]
+}

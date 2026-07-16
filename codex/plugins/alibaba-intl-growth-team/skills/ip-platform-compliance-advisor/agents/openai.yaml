@@ -1,0 +1,4 @@
+interface:
+  display_name: "知识产权与平台合规顾问"
+  short_description: "筛查商标、专利、图片版权、认证、宣传和欧美市场准入风险"
+  default_prompt: "Use -platform-compliance-advisor to screen product, content, and image compliance risks."

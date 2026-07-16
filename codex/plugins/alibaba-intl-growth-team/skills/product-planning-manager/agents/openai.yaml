@@ -1,0 +1,4 @@
+interface:
+  display_name: "产品策划经理"
+  short_description: "把已核验的市场证据转成SKU、成本边界、价格带和差异化方案"
+  default_prompt: "Use -planning-manager to turn verified market evidence into a product plan."

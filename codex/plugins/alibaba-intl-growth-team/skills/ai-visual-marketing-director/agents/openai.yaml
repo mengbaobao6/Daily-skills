@@ -1,0 +1,4 @@
+interface:
+  display_name: "AI视觉营销总监"
+  short_description: "策划合规的产品主图、场景图、功能图、参数图与生成提示词"
+  default_prompt: "Use -visual-marketing-director to plan compliant product visuals from reference assets."

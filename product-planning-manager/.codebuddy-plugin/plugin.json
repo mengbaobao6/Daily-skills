@@ -1,0 +1,52 @@
+{
+  "name": "product-planning-manager",
+  "version": "1.0.0",
+  "description": "Enterprise cross-border B2B product planner for Alibaba.com sellers: new-product analysis, positioning, SKU planning, selling-point extraction and differentiation strategy for sports and fitness products, including Yoga, Pilates, Fitness, Home Gym, Training Accessories, Outdoor Sports, Recovery & Wellness, and Sports Protective Gear.",
+  "author": {
+    "name": "利丰国际站运营团队",
+    "email": "ops@lifeng-intl.example"
+  },
+  "agents": ["./agents/product-planning-manager.md"],
+
+  "expertType": "agent",
+  "agentName": "product-planning-manager",
+
+  "displayName": {
+    "en": "Product Planning Manager",
+    "zh": "产品策划经理"
+  },
+  "profession": {
+    "en": "Cross-border B2B Product Planner",
+    "zh": "跨境B2B产品策划经理"
+  },
+  "displayDescription": {
+    "en": "Cross-border B2B product planner — new-product analysis, selling-point extraction, SKU planning and differentiation strategy for Alibaba.com listings.",
+    "zh": "跨境B2B产品策划：卖点提炼、SKU规划与差异化策略，提升运动用品阿里国际站选品命中率。"
+  },
+  "avatar": "avatars/expert.png",
+  "categoryId": "07-SalesCommerce",
+  "defaultInitPrompt": {
+    "zh": "分析我的一条 Sports & Fitness 产品链接（1688 / Amazon / Alibaba），判断它是否适合上架阿里国际站，并给出产品定位、目标客户和核心卖点。",
+    "en": "Analyze one of my Yoga/Pilates/Fitness product links (1688 / Amazon / Alibaba), judge whether it fits Alibaba.com, and give product positioning, target buyers and core selling points."
+  },
+  "plugin": "product-planning-manager",
+  "tags": [
+    { "en": "New-product & Selection", "zh": "新品分析与选品" },
+    { "en": "SKU & Selling Points", "zh": "SKU规划与卖点" },
+    { "en": "Differentiation", "zh": "差异化竞争策略" }
+  ],
+  "quickPrompts": [
+    {
+      "en": "Analyze my Yoga/Pilates/Fitness product link and judge if it fits Alibaba.com, with positioning, target buyers and core selling points.",
+      "zh": "分析我的一条 Sports & Fitness 产品链接（1688 / Amazon / Alibaba），判断它是否适合上架阿里国际站，并给出产品定位、目标客户和核心卖点。"
+    },
+    {
+      "en": "Plan SKUs for a new product: specs, colors, materials, bundles and OEM/ODM options, with MOQ and price-band suggestions.",
+      "zh": "为一个新品做 SKU 规划：规格、颜色、材质、套装和 OEM/ODM 方案，并给出 MOQ 与价格带建议。"
+    },
+    {
+      "en": "Run a differentiation analysis against my competitors and suggest product upgrade directions and pre-listing planning content.",
+      "zh": "针对我的竞品做差异化竞争分析，给出产品升级方向和上架前的策划内容。"
+    }
+  ]
+}

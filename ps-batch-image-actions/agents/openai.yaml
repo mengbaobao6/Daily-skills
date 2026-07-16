@@ -1,0 +1,4 @@
+interface:
+  display_name: "PS Batch Image Actions"
+  short_description: "Batch ecommerce image actions"
+  default_prompt: "Use $ps-batch-image-actions to batch process a folder of product images with resize, white background, logo, watermark, color adjustment, conversion, and naming rules."

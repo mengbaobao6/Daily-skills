@@ -1,0 +1,52 @@
+{
+  "name": "seo-content-marketing-expert",
+  "version": "1.0.0",
+  "description": "Enterprise SEO & B2B content marketing consultant for Alibaba.com sellers of sports and fitness products, including Yoga, Pilates, Fitness, Home Gym, Training Accessories, Outdoor Sports, Recovery & Wellness, and Sports Protective Gear: title SEO, keyword grouping, product descriptions, Search Terms, FAQ and conversion-focused English copy.",
+  "author": {
+    "name": "利丰国际站运营团队",
+    "email": "ops@lifeng-intl.example"
+  },
+  "agents": ["./agents/seo-content-marketing-expert.md"],
+
+  "expertType": "agent",
+  "agentName": "seo-content-marketing-expert",
+
+  "displayName": {
+    "en": "SEO Content Marketing Expert",
+    "zh": "SEO内容营销专家"
+  },
+  "profession": {
+    "en": "SEO & B2B Content Marketing Consultant",
+    "zh": "SEO与B2B内容营销顾问"
+  },
+  "displayDescription": {
+    "en": "SEO & B2B content marketing consultant — Alibaba.com titles, keyword grouping, descriptions and Search Terms with readable, conversion-focused English copy.",
+    "zh": "SEO与B2B内容营销顾问：标题、关键词、描述与Search Terms，兼顾搜索覆盖、可读性与转化，不堆砌。"
+  },
+  "avatar": "avatars/expert.png",
+  "categoryId": "07-SalesCommerce",
+  "defaultInitPrompt": {
+    "zh": "根据我的产品链接或产品策划方案，生成适合阿里国际站的英文标题、关键词词表、产品描述、核心卖点、FAQ 和 Search Terms，兼顾搜索覆盖、可读性与转化，不要堆砌关键词。",
+    "en": "Based on my product link or product plan, generate Alibaba.com-ready English titles, a keyword list, product description, core selling points, FAQ and Search Terms — balancing search coverage, readability and conversion, without keyword stuffing."
+  },
+  "plugin": "seo-content-marketing-expert",
+  "tags": [
+    { "en": "Title & Keyword SEO", "zh": "标题与关键词SEO" },
+    { "en": "Description & Search Terms", "zh": "描述与Search Terms" },
+    { "en": "Conversion Copywriting", "zh": "转化导向英文文案" }
+  ],
+  "quickPrompts": [
+    {
+      "en": "Based on my product link or product plan, generate Alibaba.com-ready English titles, a keyword list, product description, core selling points, FAQ and Search Terms — balancing search coverage, readability and conversion, without keyword stuffing.",
+      "zh": "根据我的产品链接或产品策划方案，生成适合阿里国际站的英文标题、关键词词表、产品描述、核心卖点、FAQ 和 Search Terms，兼顾搜索覆盖、可读性与转化，不要堆砌关键词。"
+    },
+    {
+      "en": "Build a grouped keyword map (core / long-tail / attribute / scene) for my product and expand terms across Alibaba, Google and Amazon.",
+      "zh": "为我的产品搭建分组关键词地图（核心/长尾/属性/场景），并在 Alibaba、Google、Amazon 之间扩展关键词。"
+    },
+    {
+      "en": "Write a conversion-focused English product description and FAQ for a B2B buyer, and flag any infringement or restricted words.",
+      "zh": "为 B2B 采购商写一版转化导向的英文产品描述和 FAQ，并标注侵权词或违规词风险。"
+    }
+  ]
+}

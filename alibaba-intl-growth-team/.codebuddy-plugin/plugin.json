@@ -1,0 +1,122 @@
+{
+  "name": "alibaba-intl-growth-team",
+  "version": "1.0.0",
+  "description": "Enterprise AI growth team for Alibaba.com sports & fitness B2B sellers: market research, product planning, visual, SEO, operations and IP/compliance screening in one orchestrated workflow.",
+  "author": {
+    "name": "利丰国际站运营团队",
+    "email": "ops@lifeng-intl.example"
+  },
+  "agents": [
+    "./agents/alibaba-intl-growth-team-team-lead.md",
+    "./agents/global-market-research-analyst.md",
+    "./agents/product-planning-manager.md",
+    "./agents/ai-visual-marketing-director.md",
+    "./agents/seo-content-marketing-expert.md",
+    "./agents/alibaba-intl-ops-director.md",
+    "./agents/ip-platform-compliance-advisor.md"
+  ],
+
+  "expertType": "team",
+  "agentName": "alibaba-intl-growth-team-team-lead",
+  "teamInfo": {
+    "leadAgent": "alibaba-intl-growth-team-team-lead",
+    "memberAgents": [
+      "global-market-research-analyst",
+      "product-planning-manager",
+      "ai-visual-marketing-director",
+      "seo-content-marketing-expert",
+      "alibaba-intl-ops-director",
+      "ip-platform-compliance-advisor"
+    ]
+  },
+
+  "displayName": {
+    "en": "Alibaba.com Sports & Fitness Growth Team",
+    "zh": "阿里国际站体育健身产品增长团队"
+  },
+  "profession": {
+    "en": "Alibaba.com Sports & Fitness Growth Team",
+    "zh": "阿里国际站体育健身产品增长团队"
+  },
+  "displayDescription": {
+    "en": "Enterprise Alibaba.com growth team for sports & fitness sellers: market research, product planning, SEO, visual, operations and compliance in one workflow.",
+    "zh": "体育健身B2B增长团队：调研、策划、SEO、视觉、运营与合规协作，输出可上架结构化方案。"
+  },
+  "avatar": "avatars/team.png",
+  "categoryId": "07-SalesCommerce",
+  "defaultInitPrompt": {
+    "zh": "根据我的产品链接、图片或运营需求，自动调度市场调研、产品策划、视觉、SEO、运营与合规专家，输出可直接上架的结构化增长方案。",
+    "en": "From my product link, image or operations need, automatically route market research, product planning, visual, SEO, operations and compliance experts to deliver a structured, publish-ready growth plan."
+  },
+  "plugin": "alibaba-intl-growth-team",
+  "tags": [
+    { "en": "Growth Ops & P4P", "zh": "增长运营与P4P" },
+    { "en": "Product, SEO & Visual", "zh": "产品策划·SEO·视觉" },
+    { "en": "Research & Compliance", "zh": "市场调研与合规" }
+  ],
+  "quickPrompts": [
+    {
+      "en": "From my product link, image or operations need, automatically route market research, product planning, visual, SEO, operations and compliance experts to deliver a structured, publish-ready growth plan.",
+      "zh": "根据我的产品链接、图片或运营需求，自动调度市场调研、产品策划、视觉、SEO、运营与合规专家，输出可直接上架的结构化增长方案。"
+    },
+    {
+      "en": "Audit and optimize my existing Alibaba.com listing: rewrite title/keywords/description (SEO), fix traffic & conversion (ops), and run a pre-publish compliance screen.",
+      "zh": "诊断并优化我现有的阿里国际站 Listing：重写标题/关键词/描述（SEO）、补齐流量与转化（运营），并做发布前合规初筛。"
+    },
+    {
+      "en": "Plan the main images and AI image prompts for my product, then screen them for trademark, patent and image-copyright risks before I generate.",
+      "zh": "为我的产品规划主图与 AI 图片 Prompt，并在出图前做商标、专利与图片版权合规初筛。"
+    }
+  ],
+  "members": [
+    {
+      "id": "alibaba-intl-growth-team-team-lead",
+      "displayName": { "en": "Growth Operator", "zh": "盛长盘（增长操盘手）" },
+      "profession": { "en": "Growth Operator", "zh": "增长操盘手" },
+      "avatar": "avatars/alibaba-intl-growth-team-team-lead.png",
+      "role": "lead"
+    },
+    {
+      "id": "global-market-research-analyst",
+      "displayName": { "en": "Global Market Research Analyst", "zh": "全球市场调研专家" },
+      "profession": { "en": "Cross-border B2B Market Research Consultant", "zh": "跨境B2B市场研究顾问" },
+      "avatar": "avatars/global-market-research-analyst.png",
+      "role": "member"
+    },
+    {
+      "id": "product-planning-manager",
+      "displayName": { "en": "Product Planning Manager", "zh": "产品策划经理" },
+      "profession": { "en": "Cross-border B2B Product Planning Manager", "zh": "跨境B2B产品策划经理" },
+      "avatar": "avatars/product-planning-manager.png",
+      "role": "member"
+    },
+    {
+      "id": "ai-visual-marketing-director",
+      "displayName": { "en": "AI Visual Marketing Director", "zh": "AI视觉营销总监" },
+      "profession": { "en": "AI Visual Marketing Director", "zh": "AI视觉营销总监" },
+      "avatar": "avatars/ai-visual-marketing-director.png",
+      "role": "member"
+    },
+    {
+      "id": "seo-content-marketing-expert",
+      "displayName": { "en": "SEO Content Marketing Expert", "zh": "SEO内容营销专家" },
+      "profession": { "en": "SEO & B2B Content Marketing Consultant", "zh": "SEO与B2B内容营销顾问" },
+      "avatar": "avatars/seo-content-marketing-expert.png",
+      "role": "member"
+    },
+    {
+      "id": "alibaba-intl-ops-director",
+      "displayName": { "en": "Alibaba.com Senior Operations Director", "zh": "阿里国际站高级运营总监" },
+      "profession": { "en": "Alibaba.com Senior Operations Director", "zh": "阿里国际站高级运营总监" },
+      "avatar": "avatars/alibaba-intl-ops-director.png",
+      "role": "member"
+    },
+    {
+      "id": "ip-platform-compliance-advisor",
+      "displayName": { "en": "IP & Platform Compliance Advisor", "zh": "知识产权与平台合规顾问" },
+      "profession": { "en": "IP & Cross-border E-commerce Compliance Consultant", "zh": "知识产权与跨境电商合规顾问" },
+      "avatar": "avatars/ip-platform-compliance-advisor.png",
+      "role": "member"
+    }
+  ]
+}

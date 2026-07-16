@@ -12,7 +12,7 @@ import tempfile
 
 DEFAULT_OUT_DIR = r"E:\AI Product"
 DEFAULT_IMAGE_API_SCRIPT = (
-    r"C:\Users\UserComputer\.codex\skills\openai-compatible-image-api\scripts\image_api.py"
+    r"C:\Users\UserComputer\.workbuddy\skills\product-image\scripts\image_api.py"
 )
 
 
@@ -74,66 +74,7 @@ def extract_prompts(markdown):
     return prompts
 
 
-def extract_table_value(markdown, label):
-    pattern = re.compile(rf"^\|\s*{re.escape(label)}\s*\|\s*(.*?)\s*\|", re.MULTILINE)
-    match = pattern.search(markdown)
-    return clean_prompt(match.group(1)) if match else ""
-
-
-def build_consistency_block(args, markdown, product_name, primary_prompt=""):
-    if args.consistency == "off":
-        return ""
-
-    product_display_name = extract_table_value(markdown, "产品名称") or product_name
-    structure = extract_table_value(markdown, "产品结构")
-    specs = extract_table_value(markdown, "规格参数")
-    material = extract_table_value(markdown, "材质")
-    reference_rule = (
-        "Use the supplied reference images as the strict product identity source. "
-        if args.image
-        else ""
-    )
-
-    strict_lines = [
-        "Batch product identity lock for all generated images:",
-        reference_rule
-        + "Generate the exact same product kit in every image and do not redesign the product.",
-        f"Product name: {product_display_name}.",
-    ]
-    if primary_prompt:
-        strict_lines.append(
-            "Primary product identity fingerprint from Image 1 prompt: "
-            f"{clean_prompt(primary_prompt)}."
-        )
-    if structure:
-        strict_lines.append(f"Fixed product structure: {structure}.")
-    if specs:
-        strict_lines.append(f"Fixed product dimensions and specifications: {specs}.")
-    if material:
-        strict_lines.append(f"Fixed materials and colors: {material}.")
-
-    strict_lines.extend(
-        [
-            "Keep the same component count, cork color, orange toe resistance bands, mesh fabric drawstring bag, rounded cork edges, carved board channel, and compact strap assembly whenever the product appears.",
-            "If the scene type changes, only change the camera angle, layout, background, model, measurement graphics, or B2B copywriting; never change the physical product design.",
-            "Do not add extra accessories, remove required components, change the cork kit into a different fitness product, change the orange bands to another color, or invent a brand logo.",
-            "If any prompt detail conflicts with the reference images or fixed product structure, follow the reference images and fixed product structure.",
-        ]
-    )
-
-    if args.consistency_note:
-        strict_lines.append(f"Additional consistency note: {clean_prompt(args.consistency_note)}.")
-
-    return " ".join(line for line in strict_lines if line).strip()
-
-
-def apply_consistency(prompt, consistency_block):
-    if not consistency_block:
-        return prompt
-    return clean_prompt(f"{consistency_block} Image-specific instruction: {prompt}")
-
-
-def run_one_attempt(args, index, prompt, temp_dir):
+def run_one(args, index, prompt, temp_dir):
     mode = "edit" if args.image else "generate"
     prefix = f"tmp-product-plan-{index}"
     cmd = [
@@ -181,29 +122,7 @@ def run_one_attempt(args, index, prompt, temp_dir):
     source = pathlib.Path(saved[0])
     if not source.is_file():
         raise RuntimeError(f"Image {index} output file does not exist: {source}")
-    return source
-
-
-def run_one(args, index, prompt, temp_dir):
-    max_attempts = args.max_retries + 1
-    last_error = None
-    for attempt in range(1, max_attempts + 1):
-        try:
-            source = run_one_attempt(args, index, prompt, temp_dir)
-            return index, source, attempt
-        except Exception as exc:
-            last_error = exc
-            if attempt < max_attempts:
-                print(
-                    f"Image {index} attempt {attempt} failed; retrying "
-                    f"({attempt}/{args.max_retries} retries used): {compact_error(exc)}",
-                    file=sys.stderr,
-                )
-
-    raise RuntimeError(
-        f"Image {index} failed after {max_attempts} attempts "
-        f"(initial attempt plus {args.max_retries} retries): {compact_error(last_error)}"
-    )
+    return index, source
 
 
 def compact_error(error):
@@ -247,26 +166,10 @@ def parse_args():
     parser.add_argument("--product-name", help="Output filename prefix.")
     parser.add_argument("--out-dir", default=DEFAULT_OUT_DIR)
     parser.add_argument("--workers", type=int, default=6)
-    parser.add_argument("--model", default="gpt-image-2")
+    parser.add_argument("--model", default="agnes-image-2.1-flash")
     parser.add_argument("--size", default="1024x1024")
     parser.add_argument("--quality", default="high")
-    parser.add_argument("--timeout", type=int, default=240)
-    parser.add_argument(
-        "--max-retries",
-        type=int,
-        default=3,
-        help="Retries for each failed image after its initial attempt (default: 3).",
-    )
-    parser.add_argument(
-        "--consistency",
-        choices=("strict", "off"),
-        default="strict",
-        help="Inject a batch product identity lock into every prompt to improve product consistency (default: strict).",
-    )
-    parser.add_argument(
-        "--consistency-note",
-        help="Optional extra English consistency instruction to inject into every image prompt.",
-    )
+    parser.add_argument("--timeout", type=int, default=300)
     parser.add_argument("--image-api-script", default=DEFAULT_IMAGE_API_SCRIPT)
     parser.add_argument("--keep-temp", action="store_true")
     return parser.parse_args()
@@ -285,23 +188,13 @@ def main():
     if not pathlib.Path(args.image_api_script).is_file():
         print(f"Image API script not found: {args.image_api_script}", file=sys.stderr)
         return 2
-    if args.max_retries < 0:
-        print("--max-retries must be zero or greater.", file=sys.stderr)
-        return 2
 
-    markdown = read_text(plan)
-    prompts = extract_prompts(markdown)
+    prompts = extract_prompts(read_text(plan))
     if not prompts:
         print("No Image N English Prompt sections found in the plan.", file=sys.stderr)
         return 2
 
     product_name = sanitize_filename(args.product_name or infer_product_name(plan))
-    primary_prompt = prompts[0][1] if prompts else ""
-    consistency_block = build_consistency_block(args, markdown, product_name, primary_prompt)
-    prompts = [
-        (index, apply_consistency(prompt, consistency_block))
-        for index, prompt in prompts
-    ]
     root_dir = pathlib.Path(args.out_dir)
     out_dir = create_batch_dir(root_dir, product_name)
     temp_dir = pathlib.Path(tempfile.mkdtemp(prefix="product-plan-image-batch-"))
@@ -323,21 +216,13 @@ def main():
                     failures.append({"index": index, "error": compact_error(exc)})
 
         outputs = []
-        for index, source, attempts in sorted(successes, key=lambda item: item[0]):
+        for index, source in sorted(successes, key=lambda item: item[0]):
             target = out_dir / f"{product_name}-{index}.jpg"
             shutil.move(str(source), str(target))
-            outputs.append(
-                {
-                    "index": index,
-                    "path": str(target.resolve()),
-                    "bytes": target.stat().st_size,
-                    "attempts": attempts,
-                }
-            )
+            outputs.append({"index": index, "path": str(target.resolve()), "bytes": target.stat().st_size})
 
         mode = "edit" if args.image else "generate"
         result = build_result(plan, product_name, root_dir, out_dir, mode, outputs, failures)
-        result["consistency"] = args.consistency
         print(json.dumps(result, ensure_ascii=False, indent=2))
         if failures:
             print(result["message"], file=sys.stderr)

@@ -1,0 +1,52 @@
+{
+  "name": "ai-visual-marketing-director",
+  "version": "1.0.0",
+  "description": "Enterprise AI visual marketing director for cross-border B2B: Alibaba/Amazon main image, scene, A+ and detail-page planning with English AI image prompts, consistency lock and compliance checks for sports and fitness products, including Yoga, Pilates, Fitness, Home Gym, Training Accessories, Outdoor Sports, Recovery & Wellness, and Sports Protective Gear.",
+  "author": {
+    "name": "利丰国际站运营团队",
+    "email": "ops@lifeng-intl.example"
+  },
+  "agents": ["./agents/ai-visual-marketing-director.md"],
+
+  "expertType": "agent",
+  "agentName": "ai-visual-marketing-director",
+
+  "displayName": {
+    "en": "AI Visual Marketing Director",
+    "zh": "AI视觉营销总监"
+  },
+  "profession": {
+    "en": "AI Visual Marketing Director",
+    "zh": "AI视觉营销总监"
+  },
+  "displayDescription": {
+    "en": "AI visual marketing director for cross-border B2B — main image, scene and A+ planning with English AI image prompts to boost Alibaba.com conversion and buyer trust.",
+    "zh": "跨境B2B视觉营销总监：主图、场景图、A+策划，输出AI图Prompt提升阿里国际站转化与信任。"
+  },
+  "avatar": "avatars/expert.png",
+  "categoryId": "07-SalesCommerce",
+  "defaultInitPrompt": {
+    "zh": "根据我的产品参考图（或 1688 / Amazon 链接），策划一套适合阿里国际站的主图、场景图、细节图、卖点图和详情页图片，并输出英文 AI 图像 Prompt。",
+    "en": "Based on my product reference image (or 1688 / Amazon link), plan a set of Alibaba.com-ready main, scene, detail, selling-point and detail-page images, and output English AI image prompts."
+  },
+  "plugin": "ai-visual-marketing-director",
+  "tags": [
+    { "en": "Main & Scene Planning", "zh": "主图与场景图策划" },
+    { "en": "AI Image Prompts", "zh": "AI图像Prompt" },
+    { "en": "Visual Conversion", "zh": "视觉转化与合规" }
+  ],
+  "quickPrompts": [
+    {
+      "en": "Plan a set of Alibaba.com-ready main, scene, detail, selling-point and detail-page images from my reference (or 1688 / Amazon link) and output English AI image prompts.",
+      "zh": "根据我的产品参考图（或 1688 / Amazon 链接），策划一套适合阿里国际站的主图、场景图、细节图、卖点图和详情页图片，并输出英文 AI 图像 Prompt。"
+    },
+    {
+      "en": "Design composition and copy layout for a white-background main image + usage scene image + size-spec image for my Yoga/Pilates/Fitness product.",
+      "zh": "为我的 Sports & Fitness 产品做一套白底主图 + 使用场景图 + 尺寸规格图的构图方案和文案布局。"
+    },
+    {
+      "en": "Check my planned AI product images and give a product consistency lock plus image compliance risk reminders (white bg, infringement, false claims).",
+      "zh": "检查我计划生成的 AI 产品图，给出产品一致性锁定要求和图片合规风险提醒（白底、侵权、虚假宣传）。"
+    }
+  ]
+}

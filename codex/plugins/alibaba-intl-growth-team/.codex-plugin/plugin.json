@@ -1,0 +1,28 @@
+{
+  "name": "alibaba-intl-growth-team",
+  "version": "0.1.0",
+  "description": "Codex-native expert team for evidence-based cross-border sports and fitness product growth.",
+  "author": {
+    "name": "AI Product"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "阿里国际站增长专家团队",
+    "shortDescription": "跨境市场研究、产品、视觉、SEO、运营与合规专家协作。",
+    "longDescription": "面向体育健身产品的 Codex 原生专家团队。支持多站点证据研究、产品策划、视觉与内容、Alibaba.com 运营和发布前合规初筛。",
+    "developerName": "AI Product",
+    "category": "Business",
+    "capabilities": [
+      "Cross-market research",
+      "Product planning",
+      "Visual and SEO planning",
+      "Alibaba.com operations",
+      "IP and platform compliance"
+    ],
+    "defaultPrompt": [
+      "调度专家分析一个跨境电商产品，并给出带来源的完整报告。",
+      "核验一个产品在多个 Amazon 站点的铺货、价格和评论数据。",
+      "把市场证据转成阿里国际站发品与运营方案。"
+    ]
+  }
+}
