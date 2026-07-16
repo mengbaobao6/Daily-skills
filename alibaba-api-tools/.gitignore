@@ -1,0 +1,11 @@
+# ===== 不要提交到 git 的内容 =====
+
+# 实时凭据：包含 access_token / refresh_token，属于店铺敏感信息
+tokens/
+
+# 下载的依赖二进制（cloudflared 隧道工具，可重新下载安装）
+.tools/
+
+# 运行生成的临时状态文件
+auth-status.txt
+callback-url.txt

@@ -1,0 +1,15 @@
+阿里国际站获取 Token 工具
+
+1. 双击“启动获取Token.cmd”
+2. 在窗口输入 AppKey
+3. 在窗口输入 AppSecret，输入时不显示字符是正常的
+4. 等窗口显示 Callback URL
+5. 把 Callback URL 完整复制到阿里开放平台应用后台的回调 URL，并保存
+6. 回到窗口按回车
+7. 浏览器打开授权页后，用店铺主账号授权
+8. 成功后 token 会保存到 tokens 文件夹
+
+注意：
+- 不要把 AppSecret、access_token、refresh_token 发给别人
+- callback-url.txt 会保存本次生成的回调地址
+- auth-status.txt 会显示当前运行到哪一步
