@@ -102,6 +102,8 @@ def run_one(args, index, prompt, temp_dir):
         "--timeout",
         str(args.timeout),
     ]
+    if args.resize:
+        cmd.extend(["--resize", args.resize])
     if mode == "edit":
         for image in args.image:
             cmd.extend(["--image", image])
@@ -168,6 +170,7 @@ def parse_args():
     parser.add_argument("--workers", type=int, default=6)
     parser.add_argument("--model", default="agnes-image-2.1-flash")
     parser.add_argument("--size", default="1024x1024")
+    parser.add_argument("--resize", default=None, help="Resize output to WxH after generation (e.g. 1254x1254). When set and --size is default, generation uses 2048x2048 first for a quality downscale.")
     parser.add_argument("--quality", default="high")
     parser.add_argument("--timeout", type=int, default=300)
     parser.add_argument("--image-api-script", default=DEFAULT_IMAGE_API_SCRIPT)
@@ -188,6 +191,11 @@ def main():
     if not pathlib.Path(args.image_api_script).is_file():
         print(f"Image API script not found: {args.image_api_script}", file=sys.stderr)
         return 2
+
+    # When resizing to a target (e.g. 1254x1254) and size is left at default,
+    # generate at 2048x2048 first so the downscale keeps more detail.
+    if args.resize and args.size == "1024x1024":
+        args.size = "2048x2048"
 
     prompts = extract_prompts(read_text(plan))
     if not prompts:
