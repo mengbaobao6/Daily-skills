@@ -13,7 +13,13 @@
     "position": "top-left",
     "margin": 10,
     "max_width_ratio": 0.16,
-    "opacity": 0.92
+    "opacity": 0.92,
+    "safe_zone_check": true,
+    "safe_zone_width_ratio": 0.18,
+    "safe_zone_height_ratio": 0.18,
+    "safe_zone_edge_threshold": 32,
+    "safe_zone_max_edge_mean": 4.0,
+    "safe_zone_max_edge_fraction": 0.008
   },
   "watermark": {
     "enabled": false,

@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from PIL import Image, ImageDraw, ImageEnhance, ImageFont, ImageOps
+from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageFont, ImageOps, ImageStat
 
 
 SUPPORTED_INPUTS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff"}
@@ -40,6 +40,12 @@ class LogoConfig:
     margin: int = 10
     max_width_ratio: float = 0.16
     opacity: float = 0.92
+    safe_zone_check: bool = True
+    safe_zone_width_ratio: float = 0.18
+    safe_zone_height_ratio: float = 0.18
+    safe_zone_edge_threshold: int = 32
+    safe_zone_max_edge_mean: float = 4.0
+    safe_zone_max_edge_fraction: float = 0.008
 
 
 @dataclass
@@ -125,6 +131,8 @@ def load_config(args: argparse.Namespace) -> BatchConfig:
             cli_overrides["resize"]["mode"] = args.resize_mode
     if args.logo:
         cli_overrides["logo"] = {"enabled": True, "path": args.logo}
+    if args.skip_logo_safe_check:
+        cli_overrides.setdefault("logo", {})["safe_zone_check"] = False
     if args.watermark_text:
         cli_overrides["watermark"] = {"enabled": True, "text": args.watermark_text}
     if args.fmt:
@@ -207,6 +215,50 @@ def set_opacity(image: Image.Image, opacity: float) -> Image.Image:
     return image
 
 
+def inspect_logo_safe_zone(image: Image.Image, config: LogoConfig) -> dict[str, Any]:
+    zone_width = max(8, round(image.width * config.safe_zone_width_ratio))
+    zone_height = max(8, round(image.height * config.safe_zone_height_ratio))
+    zone = image.crop((0, 0, zone_width, zone_height)).convert("L")
+    edges = zone.filter(ImageFilter.FIND_EDGES)
+    if edges.width > 6 and edges.height > 6:
+        edges = edges.crop((3, 3, edges.width - 3, edges.height - 3))
+    histogram = edges.histogram()
+    total = max(1, sum(histogram))
+    edge_mean = sum(value * count for value, count in enumerate(histogram)) / total
+    edge_fraction = sum(histogram[config.safe_zone_edge_threshold + 1 :]) / total
+    contrast_stddev = ImageStat.Stat(zone).stddev[0]
+    passed = (
+        edge_mean <= config.safe_zone_max_edge_mean
+        and edge_fraction <= config.safe_zone_max_edge_fraction
+    )
+    return {
+        "passed": passed,
+        "zone_pixels": (zone_width, zone_height),
+        "edge_mean": edge_mean,
+        "edge_fraction": edge_fraction,
+        "contrast_stddev": contrast_stddev,
+    }
+
+
+def enforce_logo_safe_zone(image: Image.Image, config: LogoConfig) -> None:
+    if not config.enabled or not config.safe_zone_check:
+        return
+    if config.position.lower() != "top-left":
+        return
+    result = inspect_logo_safe_zone(image, config)
+    if result["passed"]:
+        return
+    width, height = result["zone_pixels"]
+    raise ValueError(
+        "Logo safe-zone blocked: "
+        f"upper-left {width}x{height}px contains likely text, product, icon, or important detail "
+        f"(edge_mean={result['edge_mean']:.3f}, "
+        f"edge_fraction={result['edge_fraction']:.4f}). "
+        "Repair or regenerate the image before adding the logo. "
+        "Use --skip-logo-safe-check only when the user explicitly accepts the overlap risk."
+    )
+
+
 def resolve_position(base_size: tuple[int, int], overlay_size: tuple[int, int], position: str, margin: int) -> tuple[int, int]:
     bw, bh = base_size
     ow, oh = overlay_size
@@ -234,6 +286,7 @@ def resolve_position(base_size: tuple[int, int], overlay_size: tuple[int, int], 
 def apply_logo(image: Image.Image, config: LogoConfig) -> Image.Image:
     if not config.enabled or not config.path:
         return image
+    enforce_logo_safe_zone(image, config)
     logo_path = Path(config.path)
     if not logo_path.is_absolute() and not logo_path.exists():
         logo_path = SKILL_ROOT / logo_path
@@ -377,6 +430,11 @@ def build_parser() -> argparse.ArgumentParser:
         nargs="?",
         const=DEFAULT_LOGO_PATH,
         help="Enable a logo. With no path, use bundled assets/logo1-90x130.png in the top-left corner with a 10px margin.",
+    )
+    parser.add_argument(
+        "--skip-logo-safe-check",
+        action="store_true",
+        help="Bypass the upper-left logo exclusion-zone preflight. Use only with explicit user approval.",
     )
     parser.add_argument("--watermark-text", help="Watermark text.")
     parser.add_argument("--format", dest="fmt", choices=["jpg", "jpeg", "png", "webp", "tiff"], help="Export format.")

@@ -398,26 +398,45 @@ Image 2 至 Image 6 的角色可根据策略调整，不得机械复制同一套
 5. 不使用引号包裹图片中的文字标签。
 6. 默认使用1:1比例、写实商业摄影、高细节和清晰产品边缘。
 7. 除非图片本身需要场景，优先使用白色或浅中性背景。
-8. 每张图均预留左上角Logo安全区。在英文Prompt尾部、统一英文限定之前原样追加：
+8. 每张图均使用左上角18%×18%强制Logo禁入区。以下布局块原样放在每张英文Prompt最前面，且优先级高于产品、场景和文案要求：
 
    ```text
-   Reserve a clean empty logo safe area in the top left corner, about 12 percent of the image width and 12 percent of the image height, with no product, no icons, no text, no measurement lines, and no important visual elements inside this area. Keep all copywriting and product details away from the top left logo safe area.
+   MANDATORY LOGO EXCLUSION ZONE — HIGHEST PRIORITY:
+   Reserve the upper-left rectangle covering x=0 to 18 percent and y=0 to 18 percent of the canvas as a completely empty logo-safe exclusion zone.
+   This rectangle must contain only clean continuous background.
+   No text, letter, number, icon, product, packaging, model, hand, prop, dimension line, copywriting decoration, shadow, outline, or important visual detail may enter, overlap, or touch this rectangle.
+   All copywriting may be placed freely anywhere outside this exclusion zone according to the best visual composition.
+   Do not force copywriting into the upper-right corner; only keep it outside the exclusion zone with clear spacing from the boundary.
    ```
 
-9. 中文释义同步说明：左上角预留约12%宽高的Logo安全区，区域内不放产品、图标、文字、尺寸线或重要视觉元素，所有文案和产品细节避开该区域，如果有场景图时保留场景。
-10. Image 1 的英文Prompt尾部追加：
+9. 在每张英文Prompt尾部、统一英文限定之前原样追加：
+
+   ```text
+   FINAL LAYOUT CHECK: Keep the entire upper-left 18 percent by 18 percent exclusion zone completely empty. Keep every part of all copywriting, outlines, shadows, products, and important details outside this zone.
+   ```
+
+10. 中文释义同步说明：左上角画布 `x=0–18%`、`y=0–18%` 为强制Logo禁入区，只保留连续干净背景；文字可以根据构图自由放在其他位置，但文字本体、描边、阴影、装饰、产品和重要元素均不得进入、接触或覆盖禁入区，并与边界保持明显间距。如果有场景图，禁入区之外正常保留场景。
+11. Image 1 的英文Prompt尾部追加：
 
    ```text
    No text no logo no watermark Ratio 1:1
    ```
 
-11. Image 2 至 Image 6 的英文Prompt尾部追加：
+12. Image 2 至 Image 6 的英文Prompt尾部追加：
 
    ```text
    All visible copywriting in English only no logo no watermark Ratio 1:1
    ```
 
-12. 中文释义必须逐项同步，不能只翻译画面主体而遗漏规格、文案、Logo安全区或禁止项。
+13. 中文释义必须逐项同步，不能只翻译画面主体而遗漏规格、文案、Logo安全区或禁止项。
+
+### Logo禁入区输出自检
+
+- 每个英文Prompt必须同时包含开头的 `MANDATORY LOGO EXCLUSION ZONE` 和尾部的 `FINAL LAYOUT CHECK`。
+- 只限制左上18%×18%禁入区，不得把所有图片的文字机械地固定在右上角。
+- 如需展示定制Logo能力，把可定制位置放在产品或包装上，不得要求在左上禁入区放示例Logo。
+- 禁止同时出现“禁入区保持空白”和“禁入区放示例Logo”等冲突要求。
+- 方案生成完成后逐图检查上述规则，缺失或冲突时先修正Prompt，再进入生图。
 
 ---
 
@@ -500,7 +519,7 @@ Strategy C Creative Direction Card
 | 删除品牌 | 清查标题、关键词、卖点、图片文字、包装及Prompt中的品牌信息 |
 | 首图不像主图 | 强制恢复完整产品、浅色背景、75%至85%产品占比及无详情元素 |
 | 图片风格割裂 | 按 Creative Direction Card 统一灯光、配色、排版、文案语气与采购叙事 |
-| 加Logo避让 | 每张Prompt追加左上角12% Logo安全区规则，并同步中文 |
+| 加Logo避让 | 每张Prompt开头加入18%×18%左上强制禁入区，尾部加入 `FINAL LAYOUT CHECK`；只限制左上禁入区，不限制文字在其余区域的位置，并同步中文 |
 | 工厂或认证不真实 | 删除虚构元素，改为待补素材或中性质量流程表达 |
 | 每行换行 | 卖点之间保留空行 |
 

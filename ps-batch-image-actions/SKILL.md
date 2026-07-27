@@ -36,15 +36,18 @@ python scripts/batch_image_ps_actions.py --input "D:\input-images" --output "D:\
    - `none`: keep source size unless other steps change it.
 4. Use `background: "white"` for ecommerce white-background export. This flattens transparency onto white and also uses white as padding canvas.
 5. Configure logo placement with `logo.enabled`, `logo.path`, `logo.position`, `logo.margin`, `logo.max_width_ratio`, and `logo.opacity`. The default logo is bundled `assets/logo1-90x130.png`; the default position is `top-left` with `margin: 10`, placing it 10 pixels from the upper and left edges.
-6. Configure watermarks using either `watermark.text` or `watermark.image_path`. Use `tile: true` for repeated watermark coverage.
-7. Apply color adjustments with `brightness`, `contrast`, `saturation`, `sharpness`, and `autocontrast`.
-8. Export with the requested `format`, `quality`, and naming pattern.
+6. Before placing a top-left logo, keep `logo.safe_zone_check: true`. The script checks the upper-left 18%×18% exclusion zone and blocks that image when edge density indicates likely text, product, icon, or another important detail. A blocked image must be repaired or regenerated before logo placement.
+7. Use `--skip-logo-safe-check` only when the user explicitly accepts the overlap risk. Do not use it merely to make a batch complete.
+8. Configure watermarks using either `watermark.text` or `watermark.image_path`. Use `tile: true` for repeated watermark coverage.
+9. Apply color adjustments with `brightness`, `contrast`, `saturation`, `sharpness`, and `autocontrast`.
+10. Export with the requested `format`, `quality`, and naming pattern.
 
 ## Script Notes
 
 - Supported input extensions: `.jpg`, `.jpeg`, `.png`, `.webp`, `.bmp`, `.tif`, `.tiff`.
 - JPEG output is automatically converted to RGB and flattened.
 - Existing output files are not overwritten unless `overwrite` is true.
+- Logo-safe preflight failures are reported per file and do not stop unrelated files in the same folder.
 - Naming supports `prefix`, `start_index`, `padding`, and `keep_original_name`.
 - The script prints a summary and per-file success/failure lines for easy troubleshooting.
 
