@@ -21,6 +21,8 @@ from PIL import Image, ImageDraw, ImageEnhance, ImageFont, ImageOps
 
 SUPPORTED_INPUTS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff"}
 FORMAT_EXTENSIONS = {"jpg": ".jpg", "jpeg": ".jpg", "png": ".png", "webp": ".webp", "tiff": ".tif"}
+SKILL_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_LOGO_PATH = str(SKILL_ROOT / "assets" / "logo1-90x130.png")
 
 
 @dataclass
@@ -33,9 +35,9 @@ class ResizeConfig:
 @dataclass
 class LogoConfig:
     enabled: bool = False
-    path: str = ""
+    path: str = DEFAULT_LOGO_PATH
     position: str = "top-left"
-    margin: int = 48
+    margin: int = 10
     max_width_ratio: float = 0.16
     opacity: float = 0.92
 
@@ -233,6 +235,8 @@ def apply_logo(image: Image.Image, config: LogoConfig) -> Image.Image:
     if not config.enabled or not config.path:
         return image
     logo_path = Path(config.path)
+    if not logo_path.is_absolute() and not logo_path.exists():
+        logo_path = SKILL_ROOT / logo_path
     if not logo_path.exists():
         raise FileNotFoundError(f"Logo not found: {logo_path}")
     logo = Image.open(logo_path).convert("RGBA")
@@ -368,7 +372,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--height", type=int, help="Output height.")
     parser.add_argument("--resize-mode", choices=["none", "fit", "fill", "stretch"], help="Resize mode.")
     parser.add_argument("--background", help="Canvas/background color, e.g. white or #ffffff.")
-    parser.add_argument("--logo", help="Logo image path. Places logo in top-left safe area by default.")
+    parser.add_argument(
+        "--logo",
+        nargs="?",
+        const=DEFAULT_LOGO_PATH,
+        help="Enable a logo. With no path, use bundled assets/logo1-90x130.png in the top-left corner with a 10px margin.",
+    )
     parser.add_argument("--watermark-text", help="Watermark text.")
     parser.add_argument("--format", dest="fmt", choices=["jpg", "jpeg", "png", "webp", "tiff"], help="Export format.")
     parser.add_argument("--quality", type=int, help="Export quality for jpg/webp.")

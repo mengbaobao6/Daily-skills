@@ -9,9 +9,9 @@
   "background": "white",
   "logo": {
     "enabled": false,
-    "path": "",
+    "path": "assets/logo1-90x130.png",
     "position": "top-left",
-    "margin": 60,
+    "margin": 10,
     "max_width_ratio": 0.16,
     "opacity": 0.92
   },
