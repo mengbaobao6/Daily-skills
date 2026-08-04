@@ -83,8 +83,14 @@ def compile_manifest(input_path: Path) -> dict:
         price_tiers = parse_pairs(row_value(row, defaults, "price_tiers"), "price")
         moq = int(row_value(row, defaults, "moq", "100"))
         lead_days = int(row_value(row, defaults, "lead_time_days", "15"))
-        stock = int(row_value(row, defaults, "stock", "99999"))
-        warehouse = row_value(row, defaults, "warehouse_code", "CN_LOCAL_01")
+        stock_policy = row_value(row, defaults, "stock_policy", "unlimited")
+        sku_defaults = {}
+        if stock_policy.casefold() in {"fixed", "limited", "固定库存"}:
+            stock_value = row_value(row, defaults, "stock")
+            warehouse = row_value(row, defaults, "warehouse_code")
+            if not stock_value or not warehouse:
+                raise ValueError(f"{item_key}: fixed stock requires stock and warehouse_code")
+            sku_defaults = {"stock_target": int(stock_value), "warehouse_code": warehouse}
         attributes = {}
         for pair in split_list(row_value(row, defaults, "attribute_overrides")):
             key, value = (part.strip() for part in pair.split("=", 1))
@@ -97,7 +103,8 @@ def compile_manifest(input_path: Path) -> dict:
             "item_key": item_key,
             "source_product_id": source_id,
             "title": title,
-            "inventory_mode": row_value(row, defaults, "inventory_mode", "embedded"),
+            "stock_policy": stock_policy,
+            "inventory_mode": row_value(row, defaults, "inventory_mode", "deferred"),
             "main_images": main_images,
             "detail_galleries": [{
                 "gallery": row_value(row, defaults, "detail_gallery", "200"),
@@ -110,7 +117,7 @@ def compile_manifest(input_path: Path) -> dict:
                 row_value(row, defaults, "omit_category_attributes")
             ),
             "variant_axes": [{"name": axis, "values": variants}],
-            "sku_defaults": {"stock_target": stock, "warehouse_code": warehouse},
+            "sku_defaults": sku_defaults,
             "price_tiers": price_tiers,
             "moq": moq,
             "lead_times": [{"quantity": moq, "day": lead_days}],

@@ -42,8 +42,9 @@ into row artifacts or the workbook.
 }
 ```
 
-When the current Render defines `sku/fields/skuStock` with `warehouseCode` and `srcValue`,
-a row may use `inventory_mode=embedded` and include requested initial stock inside each new SKU row:
+Default publishing uses unlimited inventory: omit all `skuStock` values and do not call
+inventory APIs. Only an explicitly declared `stock_policy=fixed` may include requested
+initial stock when the current Render supports `warehouseCode` and `srcValue`:
 
 ```xml
 <field id="skuStock" type="multiInput">

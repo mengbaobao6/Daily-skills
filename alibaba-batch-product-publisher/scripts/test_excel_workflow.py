@@ -215,6 +215,7 @@ def create_workbook(root: Path, row_count: int = 1) -> Path:
     images.mkdir()
     (images / "1.jpg").write_bytes(b"same-image")
     plan = {
+        "stock_policy": "fixed",
         "variant_axes": [{"name": "Color", "values": ["Gray"]}],
         "sku_defaults": {"stock_target": 10, "warehouse_code": "CN_LOCAL_01"},
         "price_tiers": [{"quantity": 10, "price": "10.50"}],
@@ -251,6 +252,7 @@ def ready_product(key: str, title: str) -> dict:
         "category_id": 201273078,
         "title": title,
         "inventory_mode": "deferred",
+        "stock_policy": "fixed",
         "main_images": [{"file_id": "123", "url": "https://sc04.alicdn.com/kf/Htest.jpg"}],
         "detail_galleries": [{"gallery": "200", "display_name": "Scene", "images": [
             {"url": "https://sc04.alicdn.com/kf/Htest.jpg"},
@@ -388,6 +390,39 @@ class ExcelWorkflowTests(unittest.TestCase):
             for row in range(2, 6):
                 self.assertEqual(sheet.cell(row, headers["发布状态"]).value, "已上传")
                 self.assertTrue(sheet.cell(row, headers["新商品ID"]).value)
+
+    def test_unlimited_inventory_skips_inventory_apis_even_with_legacy_target(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            path = create_workbook(root, 1)
+            client = FakeAddClient()
+            workflow = Workflow(path, root / "artifacts", client=client)
+            workflow.state["catalog"] = {
+                "complete": True,
+                "fetched_at_epoch_ms": int(time.time() * 1000),
+                "products": [],
+            }
+            product = ready_product("P001", "Unlimited Inventory Product")
+            product["stock_policy"] = "unlimited"
+            xml, report = build(SOURCE_XML, product)
+            self.assertTrue(report["ready_for_submission"], report["errors"])
+            self.assertEqual(report["inventory_targets"], [])
+            self.assertNotIn("warehouseCode=", xml)
+            item_dir = workflow.item_dir("P001")
+            (item_dir / "product.xml").write_bytes(xml.encode("utf-8"))
+            workflow.state["items"]["P001"] = {
+                "task_key": "P001",
+                "sheet": compile_excel_rows(path)[0]["sheet"],
+                "row": 2,
+                "product": product,
+                "preflight": report,
+                "status": "ready",
+            }
+            workflow.save_state()
+            summary = workflow.submit()
+            self.assertEqual(summary["submitted"], 1)
+            self.assertEqual(client.inventory_update_calls, 0)
+            self.assertEqual(workflow.state["items"]["P001"]["inventory_state"], "not_required")
 
     def test_ambiguous_add_opens_breaker_and_stops_next_wave(self):
         with tempfile.TemporaryDirectory() as folder:

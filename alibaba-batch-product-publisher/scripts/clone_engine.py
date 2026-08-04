@@ -19,18 +19,33 @@ PROTECTED_SIMPLE_FIELDS = {
     "ladderPeriod", "inventory", "superText",
 }
 
-DEFAULT_STOCK_TARGET = 99999
 VALUE_TAGS = {"value", "values", "complex-value", "complex-values"}
 
 
-def apply_default_inventory(product: dict) -> None:
-    """Default omitted SKU inventory without overwriting explicit values."""
-    defaults = product.setdefault("sku_defaults", {})
-    if defaults.get("stock_target") is None:
-        defaults["stock_target"] = DEFAULT_STOCK_TARGET
-    for sku in product.get("skus") or []:
-        if sku.get("stock_target") is None:
-            sku["stock_target"] = DEFAULT_STOCK_TARGET
+def resolve_stock_policy(product: dict, errors: list[str]) -> tuple[str, int]:
+    """Default every product to unlimited; fixed inventory requires explicit opt-in."""
+    aliases = {
+        "unlimited": "unlimited", "unmanaged": "unlimited", "不限库存": "unlimited",
+        "fixed": "fixed", "limited": "fixed", "固定库存": "fixed",
+    }
+    explicit = str(product.get("stock_policy") or "").strip()
+    skus = product.get("skus") or []
+    targets = [sku.get("stock_target") for sku in skus]
+    policy = aliases.get(explicit.casefold() if explicit else "") if explicit else None
+    if explicit and policy is None:
+        errors.append("stock_policy must be 'unlimited' or 'fixed'.")
+        policy = "unlimited"
+    if policy is None:
+        policy = "unlimited"
+    ignored_targets = 0
+    if policy == "unlimited":
+        for sku in skus:
+            if sku.get("stock_target") is not None:
+                ignored_targets += 1
+            sku.pop("stock_target", None)
+            sku.pop("warehouse_code", None)
+    product["stock_policy"] = policy
+    return policy, ignored_targets
 
 
 def top_field(root: ET.Element, field_id: str) -> ET.Element:
@@ -163,26 +178,15 @@ def company_image_urls(root: ET.Element) -> list[str]:
     return urls
 
 
-def normalize_company_images(root: ET.Element) -> int:
-    """Convert persisted per-gallery rows to the add-compatible single gallery form."""
+def company_gallery_signature(root: ET.Element) -> list[str]:
+    """Capture every source gallery group, nested image/text value, and its order."""
     field = top_field(root, "companyImage")
-    urls = company_image_urls(root)
-    if not urls:
-        return 0
-    clear_complex_rows(field)
-    row = ET.Element("complex-values")
-    images = ET.SubElement(row, "field", {"id": "images", "type": "multiComplex"})
-    for url in urls:
-        image_row = ET.SubElement(images, "complex-values")
-        image_field = ET.SubElement(image_row, "field", {"id": "imageURL", "type": "input"})
-        replace_value(image_field, url)
-    gallery = ET.SubElement(row, "field", {"id": "gallery", "type": "singleCheck"})
-    gallery_value = ET.Element("value", {"displayName": "Company overview"})
-    gallery_value.text = "400"
-    gallery.append(gallery_value)
-    insert_at = next((i for i, child in enumerate(field) if child.tag == "fields"), len(field))
-    field.insert(insert_at, row)
-    return len(urls)
+    return [ET.tostring(row, encoding="unicode") for row in field.findall("complex-values")]
+
+
+def preserve_company_images(root: ET.Element) -> int:
+    """Keep source company gallery data untouched after rebasing definitions."""
+    return len(company_image_urls(root))
 
 
 def definition(field: ET.Element, field_id: str) -> ET.Element | None:
@@ -397,6 +401,7 @@ def set_skus(
     items: list[dict],
     sale_properties: list[dict],
     inventory_mode: str,
+    stock_policy: str,
     errors: list[str],
 ) -> None:
     field = top_field(root, "sku")
@@ -433,13 +438,15 @@ def set_skus(
         stock_valid = stock_target is not None and non_negative_integer(
             stock_target, f"SKU {item.get('sku_outer_id') or '<missing>'} stock_target", errors
         )
-        if stock_target is not None and not warehouse_code:
+        if stock_policy == "fixed" and stock_target is not None and not warehouse_code:
             errors.append(f"SKU {item.get('sku_outer_id') or '<missing>'} warehouse_code is required.")
-        if inventory_mode == "embedded":
+        if stock_policy == "fixed" and stock_target is None:
+            errors.append(
+                f"SKU {item.get('sku_outer_id') or '<missing>'} requires stock_target for fixed stock."
+            )
+        if stock_policy == "fixed" and inventory_mode == "embedded":
             if stock_target is None:
-                errors.append(
-                    f"SKU {item.get('sku_outer_id') or '<missing>'} requires stock_target in embedded inventory mode."
-                )
+                pass
             elif warehouse_code and stock_valid:
                 stock_values = ET.SubElement(stock, "values")
                 stock_values.append(make_value(
@@ -575,25 +582,27 @@ def positive_decimal(value: object, label: str, errors: list[str], allow_zero: b
 
 def build(source_xml: str, product: dict, current_schema_xml: str | None = None) -> tuple[str, dict]:
     product = copy.deepcopy(product)
-    apply_default_inventory(product)
     source_root = ET.fromstring(source_xml)
     if source_root.tag != "itemSchema":
         raise ValueError("Source Render root is not itemSchema.")
     source_company_urls = company_image_urls(source_root)
+    source_company_signature = company_gallery_signature(source_root)
     root = source_root
     schema_report = {"schema_rebased": False}
     if current_schema_xml:
         root, schema_report = rebase_on_current_schema(root, current_schema_xml)
     original_root = copy.deepcopy(root)
     errors: list[str] = []
-    normalized_company_image_count = normalize_company_images(root)
-    normalized_company_urls = company_image_urls(root)
-    if normalized_company_urls != source_company_urls:
-        missing = [url for url in source_company_urls if url not in normalized_company_urls]
-        extra = [url for url in normalized_company_urls if url not in source_company_urls]
+    preserved_company_image_count = preserve_company_images(root)
+    output_company_urls = company_image_urls(root)
+    output_company_signature = company_gallery_signature(root)
+    if output_company_signature != source_company_signature:
+        missing = [url for url in source_company_urls if url not in output_company_urls]
+        extra = [url for url in output_company_urls if url not in source_company_urls]
         errors.append(
-            "Company gallery changed while cloning: "
-            f"source={len(source_company_urls)}, output={len(normalized_company_urls)}, "
+            "Company gallery structure changed while cloning: "
+            f"source_groups={len(source_company_signature)}, output_groups={len(output_company_signature)}, "
+            f"source_images={len(source_company_urls)}, output_images={len(output_company_urls)}, "
             f"missing={len(missing)}, extra={len(extra)}."
         )
     if root.find("./field[@id='designAndSampleService']") is not None:
@@ -663,6 +672,7 @@ def build(source_xml: str, product: dict, current_schema_xml: str | None = None)
     inventory_mode = str(product.get("inventory_mode") or "deferred")
     if inventory_mode not in {"deferred", "embedded"}:
         errors.append("inventory_mode must be either 'deferred' or 'embedded'.")
+    stock_policy, ignored_stock_target_count = resolve_stock_policy(product, errors)
     if "skus" in product:
         if not product["skus"]:
             errors.append("skus cannot be empty.")
@@ -672,6 +682,7 @@ def build(source_xml: str, product: dict, current_schema_xml: str | None = None)
                 product["skus"],
                 product.get("sale_properties") or [],
                 inventory_mode,
+                stock_policy,
                 errors,
             )
             # These rows are tied to the source product's SKU IDs and props. Preserve
@@ -683,7 +694,12 @@ def build(source_xml: str, product: dict, current_schema_xml: str | None = None)
         for value in root.findall(".//field[@id='skuStock']/values/value")
         if value.get("warehouseCode") and value.get("srcValue") is not None
     )
-    if inventory_mode == "embedded" and embedded_inventory_count != len(product.get("skus") or []):
+    expected_embedded_count = (
+        len(product.get("skus") or [])
+        if stock_policy == "fixed" and inventory_mode == "embedded"
+        else 0
+    )
+    if embedded_inventory_count != expected_embedded_count:
         errors.append("Embedded skuStock row count must equal SKU row count.")
 
     tiers = product.get("price_tiers") or []
@@ -778,6 +794,8 @@ def build(source_xml: str, product: dict, current_schema_xml: str | None = None)
         "moq": product.get("moq"),
         "lead_time_count": len(lead_times),
         "inventory_mode": inventory_mode,
+        "stock_policy": stock_policy,
+        "ignored_stock_target_count": ignored_stock_target_count,
         "embedded_inventory_count": embedded_inventory_count,
         "inventory_targets": [
             {
@@ -794,9 +812,11 @@ def build(source_xml: str, product: dict, current_schema_xml: str | None = None)
         "cleared_video_values": cleared_video_values,
         "omitted_top_level_fields": omitted_top_level_fields,
         "schema_compatibility": schema_report,
-        "normalized_company_image_count": normalized_company_image_count,
+        "preserved_company_image_count": preserved_company_image_count,
         "source_company_image_count": len(source_company_urls),
-        "company_images_exact_match": normalized_company_urls == source_company_urls,
+        "source_company_group_count": len(source_company_signature),
+        "company_images_exact_match": output_company_urls == source_company_urls,
+        "company_structure_exact_match": output_company_signature == source_company_signature,
         "changed_top_level_fields": changed_top_level_fields,
         "xml_sha256": sha256,
         "errors": errors,

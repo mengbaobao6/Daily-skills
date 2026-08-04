@@ -9,8 +9,8 @@ Block the affected Excel row, not the entire workbook, when any condition fails:
   onto that current Schema.
 - A populated source-only top-level or nested field survives rebasing, or a multi-value
   field exceeds the current Schema's `maxValueRule`.
-- The final company-image URL list differs from the source in count, membership, or order,
-  or create-only service bindings retain source values.
+- The final company galleries differ from the source in group count/order, gallery IDs or
+  names, nested image/text values, image URLs, or create-only service bindings retain values.
 - Title is empty, over the current Render byte limit, or already exists exactly.
 - Main images are outside 1–6 or lack a nonzero Photobank file ID and Alibaba CDN URL.
 - A local image is missing, empty, unsupported, changed since mapping, or has no successful upload evidence.
@@ -20,8 +20,8 @@ Block the affected Excel row, not the entire workbook, when any condition fails:
 - SKU rows do not cover every sale-property dimension exactly once.
 - SKU combinations or populated outer IDs are duplicated.
 - Price, quantity, MOQ, lead time, package measurement, weight, or stock target is negative or structurally invalid.
-- `inventory_mode=embedded` lacks a non-negative integer `stock_target` or `warehouse_code`
-  on any SKU, or the generated `skuStock` row count differs from the SKU count.
+- `stock_policy=fixed` lacks a non-negative integer `stock_target` or `warehouse_code` on
+  any SKU, or its generated `skuStock` count differs from the selected technical mode.
 - Tier quantities are not strictly increasing.
 - A protected field is supplied through `simple_fields`.
 - Persisted SKU IDs or product-bound video values remain.
@@ -47,8 +47,9 @@ Successful API submission is not final verification. Final verification requires
 - real SKU IDs
 - inventory read-back equal to every requested target
 
-For `inventory_mode=embedded`, submit the requested stock inside the `schema.add` XML but
-do not trust it as actual inventory. Immediately read real inventory, calculate one delta,
-atomically record it, update once, and read back. If SKU mapping is temporarily unavailable,
+Default to `stock_policy=unlimited`: remove any legacy numeric stock values, leave every
+`skuStock` empty, and skip all inventory API calls. Fixed inventory is an advanced explicit
+opt-in only. For `stock_policy=fixed`, read real inventory after add, calculate one delta,
+record it atomically, update once, and read back. If SKU mapping is temporarily unavailable,
 write `已上传（库存待同步）` and use `reconcile-inventory` later. Never repeat an ambiguous
-or unverified inventory delta.
+or unverified delta.

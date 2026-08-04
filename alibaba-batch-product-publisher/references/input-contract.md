@@ -16,7 +16,7 @@ Save UTF-8 JSON with one batch and one or more products:
       "source_product_id": "1601686906915",
       "category_id": 202111401,
       "title": "New unique English title",
-      "inventory_mode": "embedded",
+      "stock_policy": "unlimited",
       "main_images": [
         {"local_path": "images/main-01.jpg"}
       ],
@@ -41,8 +41,6 @@ Save UTF-8 JSON with one batch and one or more products:
         {
           "sku_outer_id": "P001-NATURAL",
           "price": "10.50",
-          "stock_target": 999,
-          "warehouse_code": "CN_LOCAL_01",
           "props": [
             {"field_id": "p-200001168", "prop_id": "200001168", "value_id": "-1", "value_name": "Natural"}
           ]
@@ -83,12 +81,11 @@ Save UTF-8 JSON with one batch and one or more products:
 - `category_attributes` and `sale_properties` IDs must exist in the source Render definitions.
 - Every SKU must contain exactly one value for each sale-property dimension.
 - Multiple SKUs require unique, non-empty `sku_outer_id`.
-- `stock_target` is an inventory target, not proof of inventory in the add XML.
-- Set `inventory_mode` to `embedded` to include initial inventory in the product-create call.
-  Every SKU must then contain a non-negative integer
-  `stock_target` and a non-empty `warehouse_code`; `prepare` writes both into `skuStock`.
-- Omit `inventory_mode` or set it to `deferred` to keep `skuStock` empty and use the
-  post-publish inventory workflow.
+- Omit stock settings or use `stock_policy=unlimited` for the default behavior. The builder
+  removes legacy numeric targets, leaves `skuStock` empty, and never calls inventory APIs.
+- Use `stock_policy=fixed` only for an explicitly requested advanced case. Every SKU must
+  then contain a non-negative `stock_target` and `warehouse_code`; the post-add workflow
+  reads, updates once, and verifies actual inventory.
 - `simple_fields` may only modify existing top-level scalar fields. Protected identity and structured fields are rejected.
 - When the source uses legacy `productDescType=2` and detail images change, provide a complete
   `super_text` replacement so source-product images do not survive in the HTML.

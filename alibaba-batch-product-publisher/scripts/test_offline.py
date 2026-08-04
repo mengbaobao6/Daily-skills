@@ -11,7 +11,14 @@ import unittest
 from unittest.mock import patch
 import xml.etree.ElementTree as ET
 
-from clone_engine import build, company_image_urls, extract_render_xml, normalize_company_images, top_field
+from clone_engine import (
+    build,
+    company_gallery_signature,
+    company_image_urls,
+    extract_render_xml,
+    preserve_company_images,
+    top_field,
+)
 from batch_tool import product_rows, scan_local_images, selected_comparison
 from intake_tool import compile_manifest
 
@@ -26,6 +33,7 @@ def sample_product() -> dict:
         "category_id": 201273078,
         "title": "Offline Test Product Unique Title",
         "inventory_mode": "embedded",
+        "stock_policy": "fixed",
         "main_images": [
             {"file_id": "123456", "url": "https://sc04.alicdn.com/kf/Htest1.jpg"},
             {"file_id": "123457", "url": "https://sc04.alicdn.com/kf/Htest2.jpg"},
@@ -68,30 +76,38 @@ class CloneEngineTests(unittest.TestCase):
     def test_company_gallery_preserves_every_source_image_in_order(self):
         source_root = ET.fromstring(SOURCE_XML)
         source_urls = company_image_urls(source_root)
+        source_groups = company_gallery_signature(source_root)
         xml, report = build(SOURCE_XML, sample_product())
-        output_urls = company_image_urls(ET.fromstring(xml))
+        output_root = ET.fromstring(xml)
+        output_urls = company_image_urls(output_root)
         self.assertTrue(report["ready_for_submission"], report["errors"])
         self.assertGreater(len(source_urls), 0)
         self.assertEqual(output_urls, source_urls)
+        self.assertEqual(company_gallery_signature(output_root), source_groups)
         self.assertEqual(report["source_company_image_count"], len(source_urls))
         self.assertTrue(report["company_images_exact_match"])
+        self.assertTrue(report["company_structure_exact_match"])
 
     def test_company_gallery_loss_blocks_submission(self):
-        def lossy_normalizer(root: ET.Element) -> int:
-            count = normalize_company_images(root)
+        def lossy_preserver(root: ET.Element) -> int:
+            count = preserve_company_images(root)
             rows = root.findall(
                 "./field[@id='companyImage']/complex-values/field[@id='images']/complex-values"
             )
             if rows:
-                parent = root.find("./field[@id='companyImage']/complex-values/field[@id='images']")
+                parent = next(
+                    field for field in root.findall("./field[@id='companyImage']/complex-values/field[@id='images']")
+                    if rows[-1] in list(field)
+                )
                 parent.remove(rows[-1])
             return count - 1
 
-        with patch("clone_engine.normalize_company_images", side_effect=lossy_normalizer):
+        with patch("clone_engine.preserve_company_images", side_effect=lossy_preserver):
             _, report = build(SOURCE_XML, sample_product())
         self.assertFalse(report["ready_for_submission"])
         self.assertFalse(report["company_images_exact_match"])
-        self.assertTrue(any("Company gallery changed" in error for error in report["errors"]))
+        self.assertFalse(report["company_structure_exact_match"])
+        self.assertTrue(any("Company gallery structure changed" in error for error in report["errors"]))
 
     def test_full_clone_is_ready_and_clears_identity(self):
         xml, report = build(SOURCE_XML, sample_product())
@@ -99,6 +115,7 @@ class CloneEngineTests(unittest.TestCase):
         self.assertEqual(report["sku_count"], 1)
         self.assertEqual(report["inventory_targets"][0]["target"], 50)
         self.assertEqual(report["inventory_mode"], "embedded")
+        self.assertEqual(report["stock_policy"], "fixed")
         self.assertEqual(report["embedded_inventory_count"], 1)
         root = ET.fromstring(xml)
         self.assertEqual(top_field(root, "productTitle").findtext("value"), "Offline Test Product Unique Title")
@@ -239,17 +256,40 @@ class CloneEngineTests(unittest.TestCase):
         self.assertEqual([value.text for value in values], ["5412614", "3331260"])
         self.assertEqual(len(root.findall("./field[@id='sku']/complex-values")), 2)
 
-    def test_missing_inventory_defaults_to_99999(self):
+    def test_missing_inventory_defaults_to_unlimited(self):
         product = sample_product()
+        product.pop("stock_policy")
         product["skus"][0].pop("stock_target")
         xml, report = build(SOURCE_XML, product)
         self.assertTrue(report["ready_for_submission"], report["errors"])
+        self.assertEqual(report["stock_policy"], "unlimited")
+        self.assertEqual(report["inventory_targets"], [])
+        stock = ET.fromstring(xml).find(
+            "./field[@id='sku']/complex-values/field[@id='skuStock']/values/value"
+        )
+        self.assertIsNone(stock)
+
+    def test_explicit_99999_inventory_remains_fixed(self):
+        product = sample_product()
+        product["skus"][0]["stock_target"] = 99999
+        xml, report = build(SOURCE_XML, product)
+        self.assertTrue(report["ready_for_submission"], report["errors"])
+        self.assertEqual(report["stock_policy"], "fixed")
         self.assertEqual(report["inventory_targets"][0]["target"], 99999)
         stock = ET.fromstring(xml).find(
             "./field[@id='sku']/complex-values/field[@id='skuStock']/values/value"
         )
         self.assertEqual(stock.text, "99999")
-        self.assertEqual(stock.get("srcValue"), "99999")
+
+    def test_default_unlimited_ignores_legacy_numeric_target(self):
+        product = sample_product()
+        product.pop("stock_policy")
+        xml, report = build(SOURCE_XML, product)
+        self.assertTrue(report["ready_for_submission"], report["errors"])
+        self.assertEqual(report["stock_policy"], "unlimited")
+        self.assertEqual(report["ignored_stock_target_count"], 1)
+        self.assertEqual(report["inventory_targets"], [])
+        self.assertIsNone(ET.fromstring(xml).find(".//field[@id='skuStock']/values/value"))
 
     def test_explicit_zero_inventory_is_preserved(self):
         product = sample_product()

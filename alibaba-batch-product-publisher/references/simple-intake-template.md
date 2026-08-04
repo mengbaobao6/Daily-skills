@@ -9,13 +9,10 @@ variants: Gray;Glowing Green;Blue;Purple;Red
 price_tiers: 10=12.00;100=11.50;1000=11.00
 moq: 10
 lead_time_days: 15
-stock: 99999
-warehouse_code: CN_LOCAL_01
 pkg_length: 80
 pkg_width: 31
 pkg_height: 11
 pkg_weight: 4
-inventory_mode: embedded
 attribute_overrides: Brand Name=Lifeng;Material=PP
 custom_properties: Height=10 / 15 / 20 cm;Product Size=78 x 29 x 10/15/20 cm;Material=PP
 omit_category_attributes: Model Number

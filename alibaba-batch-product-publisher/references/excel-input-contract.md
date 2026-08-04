@@ -34,22 +34,22 @@ names against the source's current Render definitions. Never guess an ambiguous 
 
 `SKU方案文件路径` must point to a UTF-8 JSON, Markdown, TXT, CSV, or XLSX file that
 defines sale-property axes, combinations, outer IDs, prices, tier prices, MOQ, lead
-times, package measurements, inventory targets, and warehouse codes as applicable.
+times, and package measurements.
 The agent must parse it into the source Schema and report missing required values.
-If an SKU does not specify an inventory target, assign `stock_target=99999`.
-Do not replace an explicitly supplied value, including `0`. Warehouse-code requirements
-still follow the selected inventory mode and the source-compatible Schema.
+Inventory is unlimited by default and does not appear in the workbook. Do not write
+`skuStock`, inherit source stock, or call an inventory API. Advanced fixed inventory is
+allowed only when a JSON plan explicitly declares `stock_policy=fixed`; then every SKU must
+provide `stock_target` and `warehouse_code`, and explicit `0` remains `0`.
 
 For deterministic automated publishing, prefer JSON. It may directly provide:
 `variant_axes` or `sale_properties`, `skus` or `sku_defaults`, `price_tiers`, `moq`,
-`lead_times`, `package`, `inventory_mode`, `custom_properties`, and optional omission
+`lead_times`, `package`, optional advanced `stock_policy`, `custom_properties`, and omission
 lists. Markdown/TXT supports `key: value` lines or a fenced JSON object. CSV/XLSX uses
 the first data row as the plan.
 
 ## Optional input columns
 
 - `任务ID`: stable user-provided identifier; otherwise use `sheet!row`.
-- `库存模式`: `embedded` or `deferred`; default to the plan or source-compatible mode.
 - `允许相似商品`: explicit yes/no decision. Exact title duplicates remain blocked.
 - `备注`: user instructions for that row.
 

@@ -38,7 +38,7 @@ IMAGE_CONCURRENCY = 5
 ADD_CONCURRENCY = 2
 CATALOG_TTL_SECONDS = 15 * 60
 CHECKPOINT_EVERY = 10
-SCRIPT_VERSION = "2.1.0"
+SCRIPT_VERSION = "2.2.0"
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 INPUT_ALIASES = {
     "task_id": ("任务ID", "task_id"),

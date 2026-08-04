@@ -43,8 +43,9 @@ as the canonical handoff workbook. Copy it to the user's chosen location; never 
 bundled template in place.
 
 Each data row is an independent publishing job and must contain a source product ID, final
-title, final image-folder path, final specification data, and final SKU plan. A missing SKU
-stock target defaults to `99999`; explicit values, including `0`, always win.
+title, final image-folder path, final specification data, and final SKU plan. Inventory is
+unlimited by default: omit `skuStock` and do not call inventory APIs. Only an explicitly
+declared `stock_policy=fixed` may carry numeric targets, including `0`.
 
 The source product supplies category-compatible structure only. User-approved values in
 the handoff package control changed fields. This skill does not improve or reinterpret the
@@ -57,10 +58,11 @@ marketing strategy.
 3. Present the row summary and obtain explicit approval for platform writes.
 4. Run guarded preparation with image upload. Image upload is a separately recorded write
    and never triggers product creation by itself.
-5. Run submission. Each eligible row receives exactly one `schema.add` attempt. After a
-   clear acceptance, immediately read real SKU inventory, write the required delta once,
-   and read it back. XML `skuStock` is only a request and never proof of actual inventory.
-6. Write `已上传` only when real SKU inventory equals every requested target. If real SKU
+5. Run submission. Each eligible row receives exactly one `schema.add` attempt. Unlimited
+   inventory requires no inventory write. For explicit fixed inventory only, immediately
+   read real SKU inventory, write the required delta once, and read it back.
+6. Write `已上传` when the add is accepted and the inventory policy is satisfied. For fixed
+   stock this requires real SKU inventory to equal every requested target. If real SKU
    mapping is temporarily unavailable, write `已上传（库存待同步）`, preserve the queue, and
    run `reconcile-inventory` later. This does not wait for platform review.
 7. Run `watch` only when the user explicitly requests later approval and full-field
@@ -118,15 +120,17 @@ concurrency—not from reducing validation:
 - Hash each image once. Reuse only complete SHA-256-to-file-ID/CDN evidence.
 - Clear product IDs, SKU IDs, outer supply IDs, product video IDs, obsolete fields, and
   create-only service bindings before add.
-- Preserve every source company-introduction image exactly once and in source order. Block
-  submission if the source/output URL lists or counts differ; never submit a shortened
-  Company overview gallery.
+- Preserve the complete source company-introduction data structure: every gallery group,
+  gallery ID/name, image, text value, and order. Block submission on any structural diff;
+  never flatten the source into one Company overview group.
 - Verify the prepared XML hash immediately before submission.
 - Record the add attempt atomically before the call. Never retry timeout, HTTP error,
   `SYS_ERROR`, or any ambiguous write response automatically.
 - Open the write circuit breaker on ambiguity and resolve by read-only exact-title lookup.
-- Record the real inventory-update attempt before writing. Never repeat an uncertain
-  inventory delta. An embedded `99999` in XML does not satisfy inventory verification.
+- Default to unlimited inventory and omit every SKU stock value. Ignore legacy numeric
+  targets unless the plan explicitly declares `stock_policy=fixed`.
+- For explicit fixed inventory, record the real inventory-update attempt before writing
+  and never repeat an uncertain delta.
 - Do not bypass `excel_workflow.py` with a hand-built recovery XML for production adds.
 - Treat `已上传` as interface acceptance plus verified requested inventory, not platform
   approval. Do not write `发布成功`

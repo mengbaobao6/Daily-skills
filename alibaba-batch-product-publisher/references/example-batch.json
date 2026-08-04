@@ -6,7 +6,7 @@
       "source_product_id": "1601684416267",
       "category_id": 201336715,
       "title": "Offline Example Product Unique Title",
-      "inventory_mode": "embedded",
+      "stock_policy": "unlimited",
       "main_images": [
         {
           "file_id": "123456",
@@ -59,8 +59,6 @@
         {
           "sku_outer_id": "P001-NATURAL-STD",
           "price": "10.50",
-          "stock_target": 50,
-          "warehouse_code": "CN_LOCAL_01",
           "props": [
             {
               "field_id": "p-210192001",
