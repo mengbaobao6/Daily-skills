@@ -38,7 +38,7 @@ IMAGE_CONCURRENCY = 5
 ADD_CONCURRENCY = 2
 CATALOG_TTL_SECONDS = 15 * 60
 CHECKPOINT_EVERY = 10
-SCRIPT_VERSION = "2.0.0"
+SCRIPT_VERSION = "2.1.0"
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 INPUT_ALIASES = {
     "task_id": ("任务ID", "task_id"),
@@ -747,6 +747,160 @@ class Workflow:
         self.save_state()
         return {"task_key": key, **attempt}
 
+    def sync_initial_inventory(self, key: str) -> dict:
+        """Set and verify real SKU inventory after add; never repeat an uncertain delta."""
+        item = self.state["items"][key]
+        product = item["product"]
+        product_id = text((item.get("attempt") or {}).get("product_id"))
+        targets = item.get("preflight", {}).get("inventory_targets") or []
+        item_dir = self.item_dir(key)
+        if not product_id or not targets:
+            item["inventory_state"] = "not_required"
+            self.save_state()
+            return {"task_key": key, "outcome": "not_required", "verified": True}
+        if self.state.get("circuit_breaker", {}).get("open"):
+            item["inventory_state"] = "pending"
+            self.save_state()
+            return {"task_key": key, "outcome": "pending", "verified": False}
+        if item.get("inventory_attempt"):
+            prior = item["inventory_attempt"]
+            return {
+                "task_key": key,
+                "outcome": prior.get("outcome") or "existing_attempt",
+                "verified": prior.get("outcome") == "verified",
+            }
+
+        try:
+            render_response = self.client.request("alibaba.icbu.product.schema.render", {
+                "param_product_top_publish_request": {
+                    "product_id": product_id,
+                    "cat_id": int(product["category_id"]),
+                    "language": "en_US",
+                }
+            })
+            inventory_response = self.client.request("alibaba.icbu.product.sku.inventory.get", {
+                "language": "en_US", "product_id": product_id,
+            })
+        except Exception as exc:
+            item["inventory_state"] = "pending"
+            atomic_json(item_dir / "initial-inventory-read-error.json", {
+                "error_type": type(exc).__name__,
+                "write_attempted": False,
+            })
+            self.save_state()
+            return {"task_key": key, "outcome": "pending", "verified": False}
+
+        atomic_json(item_dir / "initial-inventory-render.json", render_response)
+        atomic_json(item_dir / "initial-inventory-before.json", inventory_response)
+        render_xml = text(response_payload(render_response).get("data"))
+        rows = inventory_rows(inventory_response)
+        sku_map = sku_ids_by_outer_id(render_xml) if render_xml else {}
+        expected: dict[tuple[str, str], int] = {}
+        for target in targets:
+            sku_id = sku_map.get(text(target.get("sku_outer_id")))
+            warehouse = text(target.get("warehouse_code"))
+            if sku_id and warehouse and target.get("target") is not None:
+                expected[(sku_id, warehouse)] = int(target["target"])
+
+        # Immediately after add, Render may be unavailable during review. A uniform target
+        # is still safe to map directly to every returned SKU row because no SKU-specific
+        # distinction is required.
+        target_values = {int(target["target"]) for target in targets if target.get("target") is not None}
+        warehouses = {text(target.get("warehouse_code")) for target in targets if target.get("warehouse_code")}
+        if len(expected) != len(targets) and len(rows) == len(targets) and len(target_values) == 1 and len(warehouses) == 1:
+            target_value = next(iter(target_values))
+            warehouse = next(iter(warehouses))
+            if all(text(row.get("sku_id")) and text(row.get("inventory_code")) == warehouse for row in rows):
+                expected = {(text(row["sku_id"]), warehouse): target_value for row in rows}
+
+        actual = {
+            (text(row.get("sku_id")), text(row.get("inventory_code"))): int(row.get("inventory") or 0)
+            for row in rows
+        }
+        if len(expected) != len(targets) or any(pair not in actual for pair in expected):
+            item["inventory_state"] = "pending"
+            self.save_state()
+            return {"task_key": key, "outcome": "pending", "verified": False}
+
+        changes = [{
+            "sku_id": int(sku_id),
+            "inventory_code": warehouse,
+            "inventory": abs(target - actual[(sku_id, warehouse)]),
+            "operate": "plus" if target > actual[(sku_id, warehouse)] else "sub",
+        } for (sku_id, warehouse), target in expected.items() if actual[(sku_id, warehouse)] != target]
+        attempt = {
+            "api": "alibaba.icbu.product.inventory.update",
+            "product_id": product_id,
+            "before": {f"{sku_id}:{warehouse}": actual[(sku_id, warehouse)] for sku_id, warehouse in expected},
+            "targets": {f"{sku_id}:{warehouse}": target for (sku_id, warehouse), target in expected.items()},
+            "changes": changes,
+            "attempted_at_epoch_ms": now_ms(),
+            "outcome": "attempt_started" if changes else "verified",
+            "automatic_retry_allowed": False,
+        }
+        item["inventory_attempt"] = attempt
+        atomic_json(item_dir / "initial-inventory-attempt.json", attempt)
+        self.save_state()
+        if not changes:
+            item["inventory_state"] = "verified"
+            self.save_state()
+            return {"task_key": key, "outcome": "verified", "verified": True}
+
+        try:
+            update_response = self.client.request("alibaba.icbu.product.inventory.update", {
+                "request_param": {
+                    "product_id": int(product_id),
+                    "inventory_list": changes,
+                }
+            })
+            atomic_json(item_dir / "initial-inventory-update-response.json", update_response)
+        except Exception as exc:
+            attempt.update({"outcome": "ambiguous_exception", "exception_type": type(exc).__name__})
+            item["inventory_state"] = "ambiguous"
+            self.state["circuit_breaker"] = {
+                "open": True,
+                "task_key": key,
+                "opened_at_epoch_ms": now_ms(),
+                "reason": f"inventory:{type(exc).__name__}",
+            }
+            atomic_json(item_dir / "initial-inventory-attempt.json", attempt)
+            self.save_state()
+            return {"task_key": key, "outcome": "ambiguous_exception", "verified": False}
+
+        after: dict[tuple[str, str], int] = {}
+        try:
+            for poll in range(5):
+                if poll:
+                    time.sleep(1)
+                latest = self.client.request("alibaba.icbu.product.sku.inventory.get", {
+                    "language": "en_US", "product_id": product_id,
+                })
+                atomic_json(item_dir / f"initial-inventory-after-{poll + 1}.json", latest)
+                after = {
+                    (text(row.get("sku_id")), text(row.get("inventory_code"))): int(row.get("inventory") or 0)
+                    for row in inventory_rows(latest)
+                }
+                if all(after.get(pair) == target for pair, target in expected.items()):
+                    break
+        except Exception as exc:
+            attempt["readback_error_type"] = type(exc).__name__
+        verified = bool(after) and all(after.get(pair) == target for pair, target in expected.items())
+        attempt.update({
+            "after": {f"{sku_id}:{warehouse}": after.get((sku_id, warehouse)) for sku_id, warehouse in expected},
+            "outcome": "verified" if verified else "unverified",
+        })
+        item["inventory_state"] = "verified" if verified else "unverified"
+        if not verified:
+            self.state["circuit_breaker"] = {
+                "open": True,
+                "task_key": key,
+                "opened_at_epoch_ms": now_ms(),
+                "reason": "inventory_readback_unverified",
+            }
+        atomic_json(item_dir / "initial-inventory-attempt.json", attempt)
+        self.save_state()
+        return {"task_key": key, "outcome": attempt["outcome"], "verified": verified}
+
     def submit(self) -> dict:
         if self.state.get("circuit_breaker", {}).get("open"):
             raise RuntimeError("写入熔断器已打开；必须先只读核对不明确结果。")
@@ -767,11 +921,27 @@ class Workflow:
                 item = self.state["items"][result["task_key"]]
                 product_id = text((item.get("attempt") or {}).get("product_id"))
                 if item["status"] == "auditing":
-                    ledger.update(
-                        item["sheet"], item["row"], "已上传", product_id,
-                        "新增接口已接受；未等待平台审核，后续验证仅在明确要求时运行",
-                        time.strftime("%Y-%m-%dT%H:%M:%S%z"),
-                    )
+                    inventory = self.sync_initial_inventory(result["task_key"])
+                    if inventory["verified"]:
+                        ledger.update(
+                            item["sheet"], item["row"], "已上传", product_id,
+                            "新增接口已接受；真实SKU库存已同步并核验；未等待平台审核",
+                            time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                        )
+                    elif inventory["outcome"] == "pending":
+                        item["status"] = "inventory_pending"
+                        ledger.update(
+                            item["sheet"], item["row"], "已上传（库存待同步）", product_id,
+                            "新增接口已接受；尚未取得可安全映射的真实SKU库存，禁止视为发品完成",
+                            time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                        )
+                    else:
+                        item["status"] = "inventory_unverified"
+                        ledger.update(
+                            item["sheet"], item["row"], "库存结果不明确", product_id,
+                            "库存写入或回读未明确验证；已熔断，禁止自动重试",
+                            time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                        )
                     catalog.append({"product_id": product_id, "title": item["product"]["title"], "status": "auditing"})
                 elif item["status"] == "ambiguous":
                     ledger.update(item["sheet"], item["row"], "提交结果不明确", summary="写入熔断已启动，禁止自动重试")
@@ -779,6 +949,7 @@ class Workflow:
                     ledger.update(item["sheet"], item["row"], "发布失败", summary="新增接口明确拒绝")
                 elif item["status"] == "blocked":
                     ledger.update(item["sheet"], item["row"], "预检失败", summary="提交前标题或XML哈希检查失败")
+            self.save_state()
             ledger.save()
             if self.state.get("circuit_breaker", {}).get("open"):
                 break
@@ -786,6 +957,9 @@ class Workflow:
             "submitted": sum(result.get("outcome") == "accepted" for result in results),
             "rejected": sum(result.get("outcome") == "api_rejected" for result in results),
             "ambiguous": sum(result.get("outcome") == "ambiguous_exception" for result in results),
+            "inventory_verified": sum(item.get("inventory_state") == "verified" for item in self.state["items"].values()),
+            "inventory_pending": sum(item.get("inventory_state") == "pending" for item in self.state["items"].values()),
+            "inventory_unverified": sum(item.get("inventory_state") in {"ambiguous", "unverified"} for item in self.state["items"].values()),
             "remaining": sum(
                 item.get("status") == "ready" and not item.get("attempt")
                 for item in self.state["items"].values()
@@ -793,6 +967,51 @@ class Workflow:
             "circuit_breaker": self.state.get("circuit_breaker"),
         }
         atomic_json(self.root / "submit-summary.json", summary)
+        return summary
+
+    def reconcile_inventory(self) -> dict:
+        """Retry only pending read/mapping work; never retry a recorded inventory write."""
+        if self.state.get("circuit_breaker", {}).get("open"):
+            raise RuntimeError("写入熔断器已打开；禁止继续库存写入。")
+        ledger = WorkbookLedger(self.input_path, self.sheet)
+        keys = [
+            key for key, item in self.state["items"].items()
+            if item.get("inventory_state") == "pending"
+            and (item.get("attempt") or {}).get("outcome") == "accepted"
+            and not item.get("inventory_attempt")
+        ]
+        results = []
+        for key in keys:
+            result = self.sync_initial_inventory(key)
+            results.append(result)
+            item = self.state["items"][key]
+            product_id = text((item.get("attempt") or {}).get("product_id"))
+            if result["verified"]:
+                item["status"] = "auditing"
+                ledger.update(
+                    item["sheet"], item["row"], "已上传", product_id,
+                    "新增接口已接受；真实SKU库存已同步并核验；未等待平台审核",
+                    time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                )
+            elif result["outcome"] != "pending":
+                item["status"] = "inventory_unverified"
+                ledger.update(
+                    item["sheet"], item["row"], "库存结果不明确", product_id,
+                    "库存写入或回读未明确验证；已熔断，禁止自动重试",
+                    time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                )
+            if self.state.get("circuit_breaker", {}).get("open"):
+                break
+        ledger.save()
+        self.save_state()
+        summary = {
+            "processed": len(results),
+            "verified": sum(result.get("verified") is True for result in results),
+            "pending": sum(result.get("outcome") == "pending" for result in results),
+            "unverified": sum(result.get("outcome") not in {"pending", "verified"} for result in results),
+            "circuit_breaker": self.state.get("circuit_breaker"),
+        }
+        atomic_json(self.root / "inventory-reconcile-summary.json", summary)
         return summary
 
     def verify_item(self, key: str) -> dict:
@@ -954,7 +1173,7 @@ class Workflow:
 def parser() -> argparse.ArgumentParser:
     root = argparse.ArgumentParser()
     sub = root.add_subparsers(dest="command", required=True)
-    for name in ("prepare", "submit", "watch", "run"):
+    for name in ("prepare", "submit", "reconcile-inventory", "watch", "run"):
         command = sub.add_parser(name)
         command.add_argument("--input", required=True, type=Path)
         command.add_argument("--work-dir", required=True, type=Path)
@@ -963,7 +1182,7 @@ def parser() -> argparse.ArgumentParser:
         if name == "prepare":
             command.add_argument("--upload-images", action="store_true")
             command.add_argument("--confirm", action="store_true")
-        if name in {"submit", "run"}:
+        if name in {"submit", "reconcile-inventory", "run"}:
             command.add_argument("--confirm", action="store_true")
         if name == "watch":
             command.add_argument("--max-wait-seconds", type=int, default=900)
@@ -974,13 +1193,15 @@ def main() -> None:
     args = parser().parse_args()
     if args.command == "prepare" and args.upload_images and not args.confirm:
         raise SystemExit("Photobank upload requires --confirm.")
-    if args.command in {"submit", "run"} and not args.confirm:
+    if args.command in {"submit", "reconcile-inventory", "run"} and not args.confirm:
         raise SystemExit("Formal write operations require --confirm.")
     workflow = Workflow(args.input, args.work_dir, args.sheet, args.mcp_config)
     if args.command == "prepare":
         result = workflow.prepare(args.upload_images)
     elif args.command == "submit":
         result = workflow.submit()
+    elif args.command == "reconcile-inventory":
+        result = workflow.reconcile_inventory()
     elif args.command == "watch":
         result = workflow.watch(args.max_wait_seconds)
     else:

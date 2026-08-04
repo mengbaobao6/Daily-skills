@@ -9,8 +9,8 @@ Block the affected Excel row, not the entire workbook, when any condition fails:
   onto that current Schema.
 - A populated source-only top-level or nested field survives rebasing, or a multi-value
   field exceeds the current Schema's `maxValueRule`.
-- Persisted company-image galleries were not normalized to the add-compatible single
-  Company overview block, or create-only service bindings retain source values.
+- The final company-image URL list differs from the source in count, membership, or order,
+  or create-only service bindings retain source values.
 - Title is empty, over the current Render byte limit, or already exists exactly.
 - Main images are outside 1–6 or lack a nonzero Photobank file ID and Alibaba CDN URL.
 - A local image is missing, empty, unsupported, changed since mapping, or has no successful upload evidence.
@@ -47,7 +47,8 @@ Successful API submission is not final verification. Final verification requires
 - real SKU IDs
 - inventory read-back equal to every requested target
 
-For `inventory_mode=embedded`, submit the initial stock inside the `schema.add`
-XML and perform an immediate read-only inventory check when real SKU IDs are available.
-Never fall through to `inventory.update` automatically when embedded stock is missing or
-filtered; require an explicit recovery operation recorded against the same workbook row.
+For `inventory_mode=embedded`, submit the requested stock inside the `schema.add` XML but
+do not trust it as actual inventory. Immediately read real inventory, calculate one delta,
+atomically record it, update once, and read back. If SKU mapping is temporarily unavailable,
+write `已上传（库存待同步）` and use `reconcile-inventory` later. Never repeat an ambiguous
+or unverified inventory delta.

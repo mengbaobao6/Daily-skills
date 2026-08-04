@@ -21,8 +21,11 @@ The upstream stage must not call Alibaba image-upload or product-create APIs.
 2. Validate files and values; do not improve or infer marketing content.
 3. Run read-only preparation and show the result.
 4. Obtain explicit approval for writes.
-5. Upload images, build/validate XML, submit exactly once, and write results back.
-6. Stop at `已上传` by default. Platform-review verification is a later optional task.
+5. Upload images, build/validate XML, submit exactly once, then initialize and read back
+   real SKU inventory exactly to the requested targets.
+6. Stop at `已上传` only after inventory verification. Use `已上传（库存待同步）` when SKU
+   mapping is temporarily unavailable and resume with `reconcile-inventory`. Platform-review
+   verification remains a later optional task.
 
 ## Handoff rule
 

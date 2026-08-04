@@ -150,14 +150,23 @@ def rebase_on_current_schema(source_root: ET.Element, schema_xml: str) -> tuple[
     }
 
 
-def normalize_company_images(root: ET.Element) -> int:
-    """Convert persisted per-gallery rows to the add-compatible single gallery form."""
+def company_image_urls(root: ET.Element) -> list[str]:
+    """Return unique company-gallery URLs in source order."""
     field = top_field(root, "companyImage")
-    urls = []
-    for value in field.findall("./complex-values/field[@id='images']/complex-values/field[@id='imageURL']/value"):
+    urls: list[str] = []
+    for value in field.findall(
+        "./complex-values/field[@id='images']/complex-values/field[@id='imageURL']/value"
+    ):
         url = str(value.text or "").strip()
         if url and url not in urls:
             urls.append(url)
+    return urls
+
+
+def normalize_company_images(root: ET.Element) -> int:
+    """Convert persisted per-gallery rows to the add-compatible single gallery form."""
+    field = top_field(root, "companyImage")
+    urls = company_image_urls(root)
     if not urls:
         return 0
     clear_complex_rows(field)
@@ -567,20 +576,31 @@ def positive_decimal(value: object, label: str, errors: list[str], allow_zero: b
 def build(source_xml: str, product: dict, current_schema_xml: str | None = None) -> tuple[str, dict]:
     product = copy.deepcopy(product)
     apply_default_inventory(product)
-    root = ET.fromstring(source_xml)
-    if root.tag != "itemSchema":
+    source_root = ET.fromstring(source_xml)
+    if source_root.tag != "itemSchema":
         raise ValueError("Source Render root is not itemSchema.")
+    source_company_urls = company_image_urls(source_root)
+    root = source_root
     schema_report = {"schema_rebased": False}
     if current_schema_xml:
         root, schema_report = rebase_on_current_schema(root, current_schema_xml)
     original_root = copy.deepcopy(root)
+    errors: list[str] = []
     normalized_company_image_count = normalize_company_images(root)
+    normalized_company_urls = company_image_urls(root)
+    if normalized_company_urls != source_company_urls:
+        missing = [url for url in source_company_urls if url not in normalized_company_urls]
+        extra = [url for url in normalized_company_urls if url not in source_company_urls]
+        errors.append(
+            "Company gallery changed while cloning: "
+            f"source={len(source_company_urls)}, output={len(normalized_company_urls)}, "
+            f"missing={len(missing)}, extra={len(extra)}."
+        )
     if root.find("./field[@id='designAndSampleService']") is not None:
         clear_data_nodes(top_field(root, "designAndSampleService"))
     source_persisted_sku_ids = sum(
         1 for node in root.findall(".//field[@id='skuId']/value") if str(node.text or "").strip()
     )
-    errors: list[str] = []
     omitted_category_attributes = omit_category_attributes(
         root, product.get("omit_category_attributes") or [], errors
     )
@@ -775,6 +795,8 @@ def build(source_xml: str, product: dict, current_schema_xml: str | None = None)
         "omitted_top_level_fields": omitted_top_level_fields,
         "schema_compatibility": schema_report,
         "normalized_company_image_count": normalized_company_image_count,
+        "source_company_image_count": len(source_company_urls),
+        "company_images_exact_match": normalized_company_urls == source_company_urls,
         "changed_top_level_fields": changed_top_level_fields,
         "xml_sha256": sha256,
         "errors": errors,

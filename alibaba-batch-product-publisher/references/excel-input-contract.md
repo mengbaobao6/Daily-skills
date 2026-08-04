@@ -62,13 +62,16 @@ Create these columns at the end of the header row if absent:
 - `验证时间`
 - `验证摘要`
 
-Allowed states are `待处理`, `预检失败`, `图片已上传`, `预检完成`, `已上传`, `提交结果不明确`,
-`待审核`, `验证失败`, `待人工确认`, `发布失败`, and `发布成功`.
+Allowed states are `待处理`, `预检失败`, `图片已上传`, `预检完成`, `已上传`,
+`已上传（库存待同步）`, `库存结果不明确`, `提交结果不明确`, `待审核`, `验证失败`,
+`待人工确认`, `发布失败`, and `发布成功`.
 
-Write `已上传` immediately after `schema.add` clearly succeeds and returns a new product
-ID. This is the default terminal state and means only that the platform accepted the
-upload; it does not mean the product is approved or displayed. Do not poll review or
-inventory automatically.
+After `schema.add` clearly succeeds, immediately read actual SKU inventory. Write
+`已上传` only after the requested target has been applied and read back exactly. This does
+not mean the product is approved or displayed. If real SKU mapping is not yet available,
+write `已上传（库存待同步）` and resume later with `reconcile-inventory`; do not wait for
+platform review. Write `库存结果不明确` and open the write breaker if an inventory write or
+read-back is ambiguous. Never repeat an uncertain inventory delta.
 
 Write `发布成功` only when the created product is approved and displayed, the value-level
 comparison passes, real SKU IDs exist, and inventory read-back equals every requested

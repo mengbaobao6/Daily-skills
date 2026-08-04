@@ -8,9 +8,10 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 import xml.etree.ElementTree as ET
 
-from clone_engine import build, extract_render_xml, top_field
+from clone_engine import build, company_image_urls, extract_render_xml, normalize_company_images, top_field
 from batch_tool import product_rows, scan_local_images, selected_comparison
 from intake_tool import compile_manifest
 
@@ -64,6 +65,34 @@ def sample_product() -> dict:
 
 
 class CloneEngineTests(unittest.TestCase):
+    def test_company_gallery_preserves_every_source_image_in_order(self):
+        source_root = ET.fromstring(SOURCE_XML)
+        source_urls = company_image_urls(source_root)
+        xml, report = build(SOURCE_XML, sample_product())
+        output_urls = company_image_urls(ET.fromstring(xml))
+        self.assertTrue(report["ready_for_submission"], report["errors"])
+        self.assertGreater(len(source_urls), 0)
+        self.assertEqual(output_urls, source_urls)
+        self.assertEqual(report["source_company_image_count"], len(source_urls))
+        self.assertTrue(report["company_images_exact_match"])
+
+    def test_company_gallery_loss_blocks_submission(self):
+        def lossy_normalizer(root: ET.Element) -> int:
+            count = normalize_company_images(root)
+            rows = root.findall(
+                "./field[@id='companyImage']/complex-values/field[@id='images']/complex-values"
+            )
+            if rows:
+                parent = root.find("./field[@id='companyImage']/complex-values/field[@id='images']")
+                parent.remove(rows[-1])
+            return count - 1
+
+        with patch("clone_engine.normalize_company_images", side_effect=lossy_normalizer):
+            _, report = build(SOURCE_XML, sample_product())
+        self.assertFalse(report["ready_for_submission"])
+        self.assertFalse(report["company_images_exact_match"])
+        self.assertTrue(any("Company gallery changed" in error for error in report["errors"]))
+
     def test_full_clone_is_ready_and_clears_identity(self):
         xml, report = build(SOURCE_XML, sample_product())
         self.assertTrue(report["ready_for_submission"], report["errors"])

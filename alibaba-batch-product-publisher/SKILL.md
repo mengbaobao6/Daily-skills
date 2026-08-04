@@ -57,10 +57,13 @@ marketing strategy.
 3. Present the row summary and obtain explicit approval for platform writes.
 4. Run guarded preparation with image upload. Image upload is a separately recorded write
    and never triggers product creation by itself.
-5. Run submission. Each eligible row receives exactly one `schema.add` attempt.
-6. On clear acceptance, write `已上传`, the new product ID, submission time, and summary.
-   End without waiting for platform review.
-7. Run `watch` only when the user explicitly requests later approval/field/inventory
+5. Run submission. Each eligible row receives exactly one `schema.add` attempt. After a
+   clear acceptance, immediately read real SKU inventory, write the required delta once,
+   and read it back. XML `skuStock` is only a request and never proof of actual inventory.
+6. Write `已上传` only when real SKU inventory equals every requested target. If real SKU
+   mapping is temporarily unavailable, write `已上传（库存待同步）`, preserve the queue, and
+   run `reconcile-inventory` later. This does not wait for platform review.
+7. Run `watch` only when the user explicitly requests later approval and full-field
    verification.
 
 ```bash
@@ -75,6 +78,9 @@ python scripts/excel_workflow.py prepare --input products.xlsx --work-dir artifa
 
 # Exactly-once product creation
 python scripts/excel_workflow.py submit --input products.xlsx --work-dir artifacts --config /path/to/config.json --confirm
+
+# Resume only products whose add succeeded but real inventory could not yet be mapped
+python scripts/excel_workflow.py reconcile-inventory --input products.xlsx --work-dir artifacts --config /path/to/config.json --confirm
 
 # Combined confirmed upload + submit, then exit after 已上传
 python scripts/excel_workflow.py run --input products.xlsx --work-dir artifacts --config /path/to/config.json --confirm
@@ -112,11 +118,18 @@ concurrency—not from reducing validation:
 - Hash each image once. Reuse only complete SHA-256-to-file-ID/CDN evidence.
 - Clear product IDs, SKU IDs, outer supply IDs, product video IDs, obsolete fields, and
   create-only service bindings before add.
+- Preserve every source company-introduction image exactly once and in source order. Block
+  submission if the source/output URL lists or counts differ; never submit a shortened
+  Company overview gallery.
 - Verify the prepared XML hash immediately before submission.
 - Record the add attempt atomically before the call. Never retry timeout, HTTP error,
   `SYS_ERROR`, or any ambiguous write response automatically.
 - Open the write circuit breaker on ambiguity and resolve by read-only exact-title lookup.
-- Treat `已上传` as interface acceptance, not platform approval. Do not write `发布成功`
+- Record the real inventory-update attempt before writing. Never repeat an uncertain
+  inventory delta. An embedded `99999` in XML does not satisfy inventory verification.
+- Do not bypass `excel_workflow.py` with a hand-built recovery XML for production adds.
+- Treat `已上传` as interface acceptance plus verified requested inventory, not platform
+  approval. Do not write `发布成功`
   until an explicitly requested later verification confirms approval, display state,
   requested fields, real SKU IDs, and inventory.
 

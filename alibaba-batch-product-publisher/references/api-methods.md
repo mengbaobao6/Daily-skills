@@ -43,7 +43,7 @@ into row artifacts or the workbook.
 ```
 
 When the current Render defines `sku/fields/skuStock` with `warehouseCode` and `srcValue`,
-a row may use `inventory_mode=embedded` and include initial stock inside each new SKU row:
+a row may use `inventory_mode=embedded` and include requested initial stock inside each new SKU row:
 
 ```xml
 <field id="skuStock" type="multiInput">
@@ -53,7 +53,11 @@ a row may use `inventory_mode=embedded` and include initial stock inside each ne
 </field>
 ```
 
-Read it back after creation; do not automatically call `inventory.update` if the platform filters it.
+The platform may accept this XML but create actual inventory as `0`. Therefore embedded
+stock is not proof of inventory. After creation, read `sku.inventory.get`; if actual stock
+differs, calculate one delta, atomically record the attempt, call `inventory.update` once,
+and read it back. If the real SKU mapping is not yet available, defer without writing and
+resume later. Never repeat a recorded ambiguous or unverified delta.
 
 Inventory update accepts a relative `plus` or `sub` amount. Always read current inventory,
 calculate `target-current`, write once, and read back. Never repeat a delta because of delayed

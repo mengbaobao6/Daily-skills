@@ -62,3 +62,12 @@ references, template, and requirements are one versioned unit.
 
 The agent should execute the programs, inspect their JSON summaries, and explain outcomes.
 It should not rewrite the signing, XML, retry, or recovery logic.
+
+If a row ends as `已上传（库存待同步）`, keep the same workbook and work directory and run:
+
+```bash
+python scripts/excel_workflow.py reconcile-inventory --input products.xlsx --work-dir artifacts --config /secure/config.json --confirm
+```
+
+This resumes only rows that have no recorded inventory write attempt. It never repeats an
+ambiguous or unverified inventory delta and does not wait for full product review.

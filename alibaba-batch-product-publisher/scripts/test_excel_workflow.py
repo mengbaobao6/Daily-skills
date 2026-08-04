@@ -88,34 +88,89 @@ class FakeReadClient:
 
 
 class FakeAddClient:
-    def __init__(self, ambiguous_title: str = ""):
+    def __init__(self, ambiguous_title: str = "", render_available: bool = True,
+                 inventory_available: bool = True, inventory_timeout: bool = False):
         self.ambiguous_title = ambiguous_title
+        self.render_available = render_available
+        self.inventory_available = inventory_available
+        self.inventory_timeout = inventory_timeout
         self.lock = threading.Lock()
         self.active = 0
         self.max_active = 0
         self.counter = 0
+        self.rendered: dict[str, str] = {}
+        self.inventory: dict[str, dict[tuple[str, str], int]] = {}
+        self.inventory_update_calls = 0
 
     def request(self, method: str, business: dict | None = None, timeout: int = 60) -> dict:
-        if method != "alibaba.icbu.product.schema.add":
-            raise AssertionError(method)
-        xml = business["param_product_top_publish_request"]["xml"]
-        if self.ambiguous_title and self.ambiguous_title in xml:
-            raise TimeoutError("simulated ambiguous timeout")
-        with self.lock:
-            self.active += 1
-            self.max_active = max(self.max_active, self.active)
-            self.counter += 1
-            product_id = str(1700000000000 + self.counter)
-        time.sleep(0.05)
-        with self.lock:
-            self.active -= 1
-        return {
-            "alibaba_icbu_product_schema_add_response": {
-                "biz_success": True,
-                "productId": product_id,
-                "request_id": f"request-{product_id}",
+        if method == "alibaba.icbu.product.schema.add":
+            xml = business["param_product_top_publish_request"]["xml"]
+            if self.ambiguous_title and self.ambiguous_title in xml:
+                raise TimeoutError("simulated ambiguous timeout")
+            with self.lock:
+                self.active += 1
+                self.max_active = max(self.max_active, self.active)
+                self.counter += 1
+                sequence = self.counter
+                product_id = str(1700000000000 + sequence)
+            root = ET.fromstring(xml)
+            inventory: dict[tuple[str, str], int] = {}
+            for index, row in enumerate(root.findall("./field[@id='sku']/complex-values"), start=1):
+                sku_id = str(900000 + sequence * 100 + index)
+                sku_field = row.find("field[@id='skuId']")
+                if sku_field is None:
+                    sku_field = ET.SubElement(row, "field", {"id": "skuId", "type": "input"})
+                for old in list(sku_field.findall("value")):
+                    sku_field.remove(old)
+                ET.SubElement(sku_field, "value").text = sku_id
+                stock = row.find("field[@id='skuStock']/values/value")
+                warehouse = stock.get("warehouseCode") if stock is not None else "CN_LOCAL_01"
+                inventory[(sku_id, warehouse)] = 0
+            with self.lock:
+                self.rendered[product_id] = ET.tostring(root, encoding="unicode")
+                self.inventory[product_id] = inventory
+            time.sleep(0.05)
+            with self.lock:
+                self.active -= 1
+            return {
+                "alibaba_icbu_product_schema_add_response": {
+                    "biz_success": True,
+                    "productId": product_id,
+                    "request_id": f"request-{product_id}",
+                }
             }
-        }
+        if method == "alibaba.icbu.product.schema.render":
+            product_id = str(business["param_product_top_publish_request"]["product_id"])
+            if self.render_available:
+                return render_response(self.rendered[product_id])
+            return {"alibaba_icbu_product_schema_render_response": {"biz_success": False}}
+        if method == "alibaba.icbu.product.sku.inventory.get":
+            product_id = str(business["product_id"])
+            if not self.inventory_available:
+                return {"alibaba_icbu_product_sku_inventory_get_response": {"result": {"data_list": []}}}
+            rows = [{
+                "sku_id": sku_id,
+                "inventory_code": warehouse,
+                "inventory": value,
+            } for (sku_id, warehouse), value in self.inventory[product_id].items()]
+            return {
+                "alibaba_icbu_product_sku_inventory_get_response": {
+                    "result": {"data_list": rows}
+                }
+            }
+        if method == "alibaba.icbu.product.inventory.update":
+            request = business["request_param"]
+            product_id = str(request["product_id"])
+            with self.lock:
+                self.inventory_update_calls += 1
+                if self.inventory_timeout:
+                    raise TimeoutError("simulated inventory ambiguity")
+                for change in request["inventory_list"]:
+                    pair = (str(change["sku_id"]), str(change["inventory_code"]))
+                    delta = int(change["inventory"])
+                    self.inventory[product_id][pair] += delta if change["operate"] == "plus" else -delta
+            return {"alibaba_icbu_product_inventory_update_response": {"result": {"success": True}}}
+        raise AssertionError(method)
 
 
 class FakeVerifyClient:
@@ -326,6 +381,8 @@ class ExcelWorkflowTests(unittest.TestCase):
             self.assertEqual(summary["submitted"], 4)
             self.assertEqual(client.max_active, ADD_CONCURRENCY)
             self.assertFalse(summary["circuit_breaker"]["open"])
+            self.assertEqual(summary["inventory_verified"], 4)
+            self.assertEqual(client.inventory_update_calls, 4)
             sheet = load_workbook(path)["产品发布清单"]
             headers = {cell.value: cell.column for cell in sheet[1]}
             for row in range(2, 6):
@@ -343,6 +400,54 @@ class ExcelWorkflowTests(unittest.TestCase):
             self.assertTrue(summary["circuit_breaker"]["open"])
             self.assertEqual(summary["remaining"], 2)
             self.assertEqual(sum(bool(item.get("attempt")) for item in workflow.state["items"].values()), 2)
+
+    def test_uniform_inventory_is_initialized_even_when_render_is_temporarily_unavailable(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            path = create_workbook(root, 1)
+            client = FakeAddClient(render_available=False)
+            workflow = Workflow(path, root / "artifacts", client=client)
+            self.seed_ready_items(workflow, 1)
+            summary = workflow.submit()
+            self.assertEqual(summary["inventory_verified"], 1)
+            self.assertEqual(client.inventory_update_calls, 1)
+            sheet = load_workbook(path)["产品发布清单"]
+            headers = {cell.value: cell.column for cell in sheet[1]}
+            self.assertEqual(sheet.cell(2, headers["发布状态"]).value, "已上传")
+
+    def test_pending_inventory_can_be_reconciled_without_repeating_add(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            path = create_workbook(root, 1)
+            client = FakeAddClient(inventory_available=False)
+            workflow = Workflow(path, root / "artifacts", client=client)
+            self.seed_ready_items(workflow, 1)
+            submitted = workflow.submit()
+            self.assertEqual(submitted["submitted"], 1)
+            self.assertEqual(submitted["inventory_pending"], 1)
+            self.assertEqual(client.counter, 1)
+            client.inventory_available = True
+            reconciled = workflow.reconcile_inventory()
+            self.assertEqual(reconciled["verified"], 1)
+            self.assertEqual(client.counter, 1)
+            sheet = load_workbook(path)["产品发布清单"]
+            headers = {cell.value: cell.column for cell in sheet[1]}
+            self.assertEqual(sheet.cell(2, headers["发布状态"]).value, "已上传")
+
+    def test_ambiguous_inventory_write_opens_breaker_and_is_not_retried(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            path = create_workbook(root, 1)
+            client = FakeAddClient(inventory_timeout=True)
+            workflow = Workflow(path, root / "artifacts", client=client)
+            self.seed_ready_items(workflow, 1)
+            summary = workflow.submit()
+            self.assertTrue(summary["circuit_breaker"]["open"])
+            self.assertEqual(summary["inventory_unverified"], 1)
+            self.assertEqual(client.inventory_update_calls, 1)
+            with self.assertRaises(RuntimeError):
+                workflow.reconcile_inventory()
+            self.assertEqual(client.inventory_update_calls, 1)
 
     def test_watch_requires_exact_inventory_before_success(self):
         with tempfile.TemporaryDirectory() as folder:
