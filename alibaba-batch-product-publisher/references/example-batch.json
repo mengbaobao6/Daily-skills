@@ -1,0 +1,110 @@
+{
+  "batch_id": "offline-example",
+  "products": [
+    {
+      "item_key": "P001",
+      "source_product_id": "1601684416267",
+      "category_id": 201336715,
+      "title": "Offline Example Product Unique Title",
+      "inventory_mode": "embedded",
+      "main_images": [
+        {
+          "file_id": "123456",
+          "url": "https://sc04.alicdn.com/kf/Hexample1.jpg"
+        }
+      ],
+      "detail_galleries": [
+        {
+          "gallery": "-2",
+          "display_name": "product",
+          "images": [
+            {
+              "url": "https://sc04.alicdn.com/kf/Hexample1.jpg"
+            }
+          ]
+        }
+      ],
+      "super_text": "<div><img src=\"https://sc04.alicdn.com/kf/Hexample1.jpg\"></div>",
+      "category_attributes": [
+        {
+          "field_id": "p-191284014",
+          "type": "singleCheck",
+          "value_id": "-2",
+          "input_value": "Cork"
+        }
+      ],
+      "sale_properties": [
+        {
+          "field_id": "p-210192001",
+          "name": "Size",
+          "values": [
+            {
+              "value_id": "-2",
+              "input_value": "Standard"
+            }
+          ]
+        },
+        {
+          "field_id": "p-200001168",
+          "name": "Color",
+          "values": [
+            {
+              "value_id": "-1",
+              "input_value": "Natural"
+            }
+          ]
+        }
+      ],
+      "skus": [
+        {
+          "sku_outer_id": "P001-NATURAL-STD",
+          "price": "10.50",
+          "stock_target": 50,
+          "warehouse_code": "CN_LOCAL_01",
+          "props": [
+            {
+              "field_id": "p-210192001",
+              "prop_id": "210192001",
+              "value_id": "-2",
+              "value_name": "Standard"
+            },
+            {
+              "field_id": "p-200001168",
+              "prop_id": "200001168",
+              "value_id": "-1",
+              "value_name": "Natural"
+            }
+          ]
+        }
+      ],
+      "price_tiers": [
+        {
+          "quantity": 10,
+          "price": "10.50"
+        },
+        {
+          "quantity": 100,
+          "price": "9.50"
+        }
+      ],
+      "moq": 10,
+      "lead_times": [
+        {
+          "quantity": 10,
+          "day": 15
+        }
+      ],
+      "package": {
+        "length": 40,
+        "width": 15,
+        "height": 15,
+        "weight": 1.5
+      },
+      "simple_fields": {
+        "priceUnit": "4",
+        "saleType": "normal",
+        "scPrice": "1"
+      }
+    }
+  ]
+}

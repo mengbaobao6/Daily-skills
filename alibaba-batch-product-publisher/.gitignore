@@ -1,0 +1,7 @@
+__pycache__/
+*.py[cod]
+artifacts/
+.alibaba-publisher.json
+config.local.json
+token*.json
+*.log

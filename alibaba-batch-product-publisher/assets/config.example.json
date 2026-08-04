@@ -1,0 +1,6 @@
+{
+  "ALIBABA_APP_KEY": "replace-with-app-key",
+  "ALIBABA_APP_SECRET": "replace-with-app-secret",
+  "ALIBABA_TOKEN_FILE": "./token.json",
+  "ALIBABA_GATEWAY": "https://open-api.alibaba.com/sync"
+}

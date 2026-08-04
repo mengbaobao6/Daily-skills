@@ -1,0 +1,4 @@
+interface:
+  display_name: "阿里国际站通用批量发品"
+  short_description: "让不同Agent安全执行Excel批量发品"
+  default_prompt: "Use $alibaba-batch-product-publisher only for the final publishing stage. Validate my user-approved Excel and assets, then ask before any platform write."
