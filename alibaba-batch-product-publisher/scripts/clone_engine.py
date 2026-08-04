@@ -184,6 +184,24 @@ def company_gallery_signature(root: ET.Element) -> list[str]:
     return [ET.tostring(row, encoding="unicode") for row in field.findall("complex-values")]
 
 
+def field_value_signature(root: ET.Element, field_id: str) -> list[str]:
+    """Capture business-value nodes while allowing current Schema definitions to change."""
+    field = top_field(root, field_id)
+    return [
+        ET.tostring(child, encoding="unicode")
+        for child in field
+        if child.tag in VALUE_TAGS
+    ]
+
+
+def company_content_signature(root: ET.Element) -> dict[str, list[str]]:
+    """Capture all supplier-introduction content, including description and FAQ."""
+    return {
+        field_id: field_value_signature(root, field_id)
+        for field_id in ("companyImage", "companyDesc", "companyFaqDesc")
+    }
+
+
 def preserve_company_images(root: ET.Element) -> int:
     """Keep source company gallery data untouched after rebasing definitions."""
     return len(company_image_urls(root))
@@ -587,6 +605,7 @@ def build(source_xml: str, product: dict, current_schema_xml: str | None = None)
         raise ValueError("Source Render root is not itemSchema.")
     source_company_urls = company_image_urls(source_root)
     source_company_signature = company_gallery_signature(source_root)
+    source_company_content = company_content_signature(source_root)
     root = source_root
     schema_report = {"schema_rebased": False}
     if current_schema_xml:
@@ -596,6 +615,7 @@ def build(source_xml: str, product: dict, current_schema_xml: str | None = None)
     preserved_company_image_count = preserve_company_images(root)
     output_company_urls = company_image_urls(root)
     output_company_signature = company_gallery_signature(root)
+    output_company_content = company_content_signature(root)
     if output_company_signature != source_company_signature:
         missing = [url for url in source_company_urls if url not in output_company_urls]
         extra = [url for url in output_company_urls if url not in source_company_urls]
@@ -604,6 +624,16 @@ def build(source_xml: str, product: dict, current_schema_xml: str | None = None)
             f"source_groups={len(source_company_signature)}, output_groups={len(output_company_signature)}, "
             f"source_images={len(source_company_urls)}, output_images={len(output_company_urls)}, "
             f"missing={len(missing)}, extra={len(extra)}."
+        )
+    if output_company_content != source_company_content:
+        changed_sections = [
+            field_id for field_id in source_company_content
+            if output_company_content.get(field_id) != source_company_content[field_id]
+        ]
+        errors.append(
+            "Company introduction content changed while cloning: "
+            + ", ".join(changed_sections)
+            + "."
         )
     if root.find("./field[@id='designAndSampleService']") is not None:
         clear_data_nodes(top_field(root, "designAndSampleService"))
@@ -817,6 +847,7 @@ def build(source_xml: str, product: dict, current_schema_xml: str | None = None)
         "source_company_group_count": len(source_company_signature),
         "company_images_exact_match": output_company_urls == source_company_urls,
         "company_structure_exact_match": output_company_signature == source_company_signature,
+        "company_content_exact_match": output_company_content == source_company_content,
         "changed_top_level_fields": changed_top_level_fields,
         "xml_sha256": sha256,
         "errors": errors,

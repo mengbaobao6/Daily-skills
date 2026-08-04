@@ -9,8 +9,9 @@ Block the affected Excel row, not the entire workbook, when any condition fails:
   onto that current Schema.
 - A populated source-only top-level or nested field survives rebasing, or a multi-value
   field exceeds the current Schema's `maxValueRule`.
-- The final company galleries differ from the source in group count/order, gallery IDs or
-  names, nested image/text values, image URLs, or create-only service bindings retain values.
+- The final company introduction differs from the source in gallery group count/order,
+  gallery IDs/names, images, company-description values, FAQ questions/answers, or other
+  nested content; or create-only service bindings retain values.
 - Title is empty, over the current Render byte limit, or already exists exactly.
 - Main images are outside 1–6 or lack a nonzero Photobank file ID and Alibaba CDN URL.
 - A local image is missing, empty, unsupported, changed since mapping, or has no successful upload evidence.

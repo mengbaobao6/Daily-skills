@@ -121,8 +121,8 @@ concurrency—not from reducing validation:
 - Clear product IDs, SKU IDs, outer supply IDs, product video IDs, obsolete fields, and
   create-only service bindings before add.
 - Preserve the complete source company-introduction data structure: every gallery group,
-  gallery ID/name, image, text value, and order. Block submission on any structural diff;
-  never flatten the source into one Company overview group.
+  gallery ID/name, image, company-description value, FAQ question/answer, and order. Block
+  submission on any structural diff; never flatten the source into one Company overview group.
 - Verify the prepared XML hash immediately before submission.
 - Record the add attempt atomically before the call. Never retry timeout, HTTP error,
   `SYS_ERROR`, or any ambiguous write response automatically.
