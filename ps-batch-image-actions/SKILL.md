@@ -5,6 +5,16 @@ description: "Local batch image processing for product photos and ecommerce asse
 
 # PS Batch Image Actions
 
+## Product-plan project handoff
+
+When the logo task follows `product-plan` or targets a product project under `E:\AI Product\[产品名称]\`:
+
+- Use `E:\AI Product\[产品名称]\营销图\` as the input folder and `E:\AI Product\[产品名称]\+logo图\` as the output folder. If the product project is unambiguous, do not ask the user to repeat these paths.
+- Process only image files in `营销图`; do not recurse into the product root or treat reference images as generated marketing images.
+- Preserve every no-logo source image, its dimensions, and its format unless the user explicitly requests conversion or resizing.
+- Keep the matching source filename (`Image_01`, `Image_02`, and so on) by setting `export.keep_original_name: true`; the separate `+logo图` folder identifies the logo version. Never overwrite files already present there without explicit permission.
+- Keep the top-left 18%×18% safe-zone check enabled. If an image fails, report it for regeneration or repair instead of forcing the logo over content.
+
 ## Quick Start
 
 Use `scripts/batch_image_ps_actions.py` for deterministic folder processing. Prefer a JSON config when the user has repeatable export rules; use command-line flags for quick one-off batches.
