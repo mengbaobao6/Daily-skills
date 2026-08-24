@@ -15,17 +15,6 @@ When the logo task follows `product-plan` or targets a product project under `E:
 - Keep the matching source filename (`Image_01`, `Image_02`, and so on) by setting `export.keep_original_name: true`; the separate `+logo图` folder identifies the logo version. Never overwrite files already present there without explicit permission.
 - Keep the top-left 18%×18% safe-zone check enabled. If an image fails, report it for regeneration or repair instead of forcing the logo over content.
 
-## Safe-zone check limits (2026-08 case note)
-
-- The safe-zone check only inspects the **top-left region's edge density** (edge_mean / edge_fraction). It does **NOT** verify whether the image actually depicts the correct product.
-- When `logo.position` is anything other than `top-left`, the safe-zone check is **skipped entirely** — before using top-right/bottom corners, confirm visually that the corner is clean.
-- Product-shape consistency (e.g. a thin towel rendered as a thick mat) must be verified against the reference images manually or via AI review after generation; the logo script cannot detect it.
-
-## Default logo asset
-
-- The skill bundles a default logo at `assets/logo1-90x130.png` (90×130 px transparent PNG). It matches the shared asset `E:\AI Product\00_公共素材\logo1-90x130.png` (same MD5). Use it when the user says "用默认logo" or no logo file is provided.
-- For product-plan projects, preferred position is `top-left` with `margin_top: 30` / `margin_left: 40` (matches the 150×180 px logo reserve area in generated images).
-
 ## Quick Start
 
 Use `scripts/batch_image_ps_actions.py` for deterministic folder processing. Prefer a JSON config when the user has repeatable export rules; use command-line flags for quick one-off batches.
@@ -40,26 +29,35 @@ If no config is supplied, pass the main options directly:
 python scripts/batch_image_ps_actions.py --input "D:\input-images" --output "D:\output-images" --width 1200 --height 1200 --resize-mode fit --background white --format jpg --quality 92 --prefix product
 ```
 
+Enable the bundled default logo with `--logo` and no path:
+
+```powershell
+python scripts/batch_image_ps_actions.py --input "D:\input-images" --output "D:\output-images" --logo
+```
+
 ## Workflow
 
 1. Confirm the input folder, output folder, and whether subfolders should be included.
-2. Ask for optional assets only when needed: logo image path, watermark image path, or watermark text.
+2. Use bundled `assets/logo1-90x130.png` when logo placement is requested without another logo path. Ask for optional assets only when a different logo, watermark image, or watermark text is needed.
 3. Choose resize behavior:
    - `fit`: preserve the whole image and pad the canvas.
    - `fill`: crop to fill the exact output size.
    - `stretch`: force exact dimensions.
    - `none`: keep source size unless other steps change it.
 4. Use `background: "white"` for ecommerce white-background export. This flattens transparency onto white and also uses white as padding canvas.
-5. Configure logo placement with `logo.enabled`, `logo.path`, `logo.position`, `logo.margin`, `logo.max_width_ratio`, and `logo.opacity`. The default position is top-left with a safe margin.
-6. Configure watermarks using either `watermark.text` or `watermark.image_path`. Use `tile: true` for repeated watermark coverage.
-7. Apply color adjustments with `brightness`, `contrast`, `saturation`, `sharpness`, and `autocontrast`.
-8. Export with the requested `format`, `quality`, and naming pattern.
+5. Configure logo placement with `logo.enabled`, `logo.path`, `logo.position`, `logo.margin`, `logo.max_width_ratio`, and `logo.opacity`. The default logo is bundled `assets/logo1-90x130.png`; the default position is `top-left` with `margin: 10`, placing it 10 pixels from the upper and left edges.
+6. Before placing a top-left logo, keep `logo.safe_zone_check: true`. The script checks the upper-left 18%×18% exclusion zone and blocks that image when edge density indicates likely text, product, icon, or another important detail. A blocked image must be repaired or regenerated before logo placement.
+7. Use `--skip-logo-safe-check` only when the user explicitly accepts the overlap risk. Do not use it merely to make a batch complete.
+8. Configure watermarks using either `watermark.text` or `watermark.image_path`. Use `tile: true` for repeated watermark coverage.
+9. Apply color adjustments with `brightness`, `contrast`, `saturation`, `sharpness`, and `autocontrast`.
+10. Export with the requested `format`, `quality`, and naming pattern.
 
 ## Script Notes
 
 - Supported input extensions: `.jpg`, `.jpeg`, `.png`, `.webp`, `.bmp`, `.tif`, `.tiff`.
 - JPEG output is automatically converted to RGB and flattened.
 - Existing output files are not overwritten unless `overwrite` is true.
+- Logo-safe preflight failures are reported per file and do not stop unrelated files in the same folder.
 - Naming supports `prefix`, `start_index`, `padding`, and `keep_original_name`.
 - The script prints a summary and per-file success/failure lines for easy troubleshooting.
 

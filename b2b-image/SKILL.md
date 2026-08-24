@@ -5,6 +5,32 @@ description: 批量生成跨境电商 B2B 产品图片。Use when the user asks 
 
 # B2B Image
 
+## Image generation retry rule
+
+- Submit every image once initially. If that submission fails for any reason, resubmit the same image task up to 3 times (`--max-retries 3`), for at most 4 attempts total.
+- Retry only the failed image task. Do not regenerate images that have already succeeded.
+- Treat non-zero API exit codes, invalid JSON, missing `saved` results, and missing output files as failed attempts.
+- After all 3 retries fail, stop retrying that image and notify the frontend through the final JSON: set `status` to `partial_failed` or `failed`, include its index in `failed_indices`, and include the final error in `failures`. Also surface the result message in the final response.
+- Keep successful images even when another image exhausts all retries.
+
+## Product consistency rule
+
+- 默认启用 `--consistency strict`。脚本会从营销方案表格中读取 `产品名称`、`产品结构`、`规格参数`、`材质`，并把这些内容作为同一批 6 张图的产品身份锁注入到每个 `English Prompt` 前面。
+- 脚本还会把 Image 1 的 `English Prompt` 作为主产品身份指纹注入到所有图片里。编写方案时，Image 1 必须完整描述产品组件、颜色、材质、尺寸和包装，因为后续图片会以它作为统一产品外观基准。
+- 有参考图时，参考图优先级最高。每张图都必须把参考图作为严格产品身份来源，保持相同组件数量、软木颜色、橙色脚趾阻力带、网袋布袋、圆角软木边缘、凹槽结构和组装绑带形态。
+- 允许变化的是构图、镜头角度、背景、模特、尺寸标注、图标和 B2B 文案；不允许把产品改成其他健身器材、增减配件、改变关键颜色、改变材料质感或发明品牌 LOGO。
+- 如果方案中的单张图 Prompt 与产品结构或参考图冲突，优先遵守参考图和产品结构。必要时先修改方案 Prompt，再生图。
+- 只有用户明确要求关闭一致性增强时，才使用 `--consistency off`。
+
+## Logo安全区规则
+
+- 默认启用 `--safe-zone-check strict`。脚本会在每张生图Prompt最前面注入左上18%×18%强制禁入区，并在Prompt尾部重复最终布局检查。
+- 禁入区只限制左上区域；文案可以根据构图自由放在其余任何位置，不强制固定到右上角。
+- 图片生成后，脚本会检查左上禁入区的边缘密度。禁入区出现文字、图标、产品或明显重要细节时，不把该图直接判定为成功。
+- 安全区不合格时，默认使用刚生成的图片进行最多2次AI返修：保持产品、颜色、构图和英文文案不变，清空左上禁入区并把冲突文案移到其他合适位置。
+- 两次AI返修后仍不合格时，将该图片记为失败并写入最终JSON；不得把不合格图片交给加Logo流程。
+- `--safe-zone-check off` 只能在用户明确要求关闭时使用。不要为了提高成功数绕过安全区校验。
+
 用这个技能自动完成整套 B2B 产品图生成流程：
 
 1. 读取营销方案 Markdown 文件。
@@ -21,6 +47,7 @@ description: 批量生成跨境电商 B2B 产品图片。Use when the user asks 
 - `openai-compatible-image-api`
 - API key 环境变量：`OVO_API_KEY`、`OPENAI_COMPAT_IMAGE_API_KEY` 或 `OPENAI_API_KEY`
 - Python 命令：`python`
+- Python 包：`Pillow`
 
 默认图片 API 参数：
 
@@ -44,6 +71,9 @@ python scripts/generate_from_plan.py --plan "E:\AI Product\产品_营销方案_�
 --size 1024x1024
 --quality high
 --model gpt-image-2
+--consistency strict
+--safe-zone-check strict
+--safe-zone-retries 2
 ```
 
 ## 使用规则
@@ -54,30 +84,13 @@ python scripts/generate_from_plan.py --plan "E:\AI Product\产品_营销方案_�
 - `--out-dir` 是批次根目录；脚本会在根目录下创建 `<产品名>` 子文件夹。
 - 如果 `<产品名>` 文件夹已存在，自动创建 `<产品名>01`、`<产品名>02` 这样的新文件夹，避免覆盖旧图。
 - 保持方案里的英文 Prompt 原意，不擅自改文案。
+- 默认增强产品一致性，不改变单张图的营销意图，只补充统一产品身份约束。
+- 默认把左上18%×18%作为Logo强制禁入区；只限制该区域，不限制其他区域的文字位置。
+- 每张输出的最终JSON都会记录 `safe_zone` 检查指标和 `safe_zone_repair_attempts`。
 - 默认并发生成，6 张图时用 6 个 worker。
 - 默认保存 JPG，不保存 PNG。
 - 某张图失败时，保留已成功文件。脚本会返回 `status: partial_failed`、`failed_indices` 和 `failures`；必须在前端/最终回复中提示失败的是哪几张。
 - 只有全部图片都失败时，脚本才返回失败退出码；部分失败时退出码为 0，便于前端继续展示成功图片。
-
-## 方案格式硬性要求（2026-08 案例固化）
-
-生图脚本按以下格式从方案 Markdown 提取 Prompt，**不满足则解析不到或解析错误**：
-
-- 每个图片区块标题必须是三级标题：`### Image 1`、`### Image 2` …（不是 `####`，也不是 `##`）。
-- 每个区块内，英文 Prompt 行必须是 `**English Prompt:**` 加粗标记、独占一行，后面紧跟 Prompt 文本。
-- Prompt 结束后另起一行 `**对应中文：**`（或下一 `### Image N`），避免中文被并入英文 Prompt。
-- 完整解析正则：`###\s*Image\s*(\d+).*?\*\*English Prompt:\*\*\s*(.*?)(?=\n\s*\*\*|(?:\n\s*---)|(?:\n\s*###\s*Image\s*\d+)|\Z)`（忽略大小写、跨行）。
-
-## 生成后验收（每次生成后必做）
-
-- 对照传入的参考图逐张核验 4 项：①产品形态一致（不是别的产品）；②颜色/材质/结构一致；③左上角安全区干净（可调 ps-batch-image-actions 安全区检查）；④文案位置与拼写。
-- 任一张不达标 → 单张重做，不整批重跑；把结果写回 `产品状态.md`。
-- 注意：生图 API 返回的实际尺寸可能不是请求的 1024×1024（实测为 1254×1254），属正常；安全区尺寸按实际像素比例换算。
-
-## 已知坑位（避免重复踩）
-
-- **强文字约束会压低参考图权重**：在 Prompt 里叠加过多"禁止/限定文字"约束时，AI 可能偏离参考图把产品画成其他形态（薄铺巾→厚瑜伽垫）。产品一致性要求必须写在最前面，文字约束要短、放在产品一致性之后。
-- **copywriting 与左上角留空冲突**：`empty clean area at top left corner` 与 `all in English including copywriting` 并存时，AI 会把文字放左上角。要用强约束：`NO text in the upper half, top-left 220x220px completely empty, copywriting ONLY in the lower third`。
 
 ## 示例
 
