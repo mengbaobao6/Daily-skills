@@ -34,15 +34,17 @@ class ResizeConfig:
 
 @dataclass
 class LogoConfig:
-    enabled: bool = False
+    enabled: bool = True
     path: str = DEFAULT_LOGO_PATH
     position: str = "top-left"
     margin: int = 10
+    margin_top: int | None = 30
+    margin_left: int | None = 40
     max_width_ratio: float = 0.16
     opacity: float = 0.92
     safe_zone_check: bool = True
-    safe_zone_width_ratio: float = 0.18
-    safe_zone_height_ratio: float = 0.18
+    safe_zone_width_px: int = 140
+    safe_zone_height_px: int = 170
     safe_zone_edge_threshold: int = 32
     safe_zone_max_edge_mean: float = 4.0
     safe_zone_max_edge_fraction: float = 0.008
@@ -73,7 +75,7 @@ class AdjustConfig:
 @dataclass
 class ExportConfig:
     format: str = "jpg"
-    quality: int = 92
+    quality: int = 80
     prefix: str = "image"
     start_index: int = 1
     padding: int = 3
@@ -216,8 +218,8 @@ def set_opacity(image: Image.Image, opacity: float) -> Image.Image:
 
 
 def inspect_logo_safe_zone(image: Image.Image, config: LogoConfig) -> dict[str, Any]:
-    zone_width = max(8, round(image.width * config.safe_zone_width_ratio))
-    zone_height = max(8, round(image.height * config.safe_zone_height_ratio))
+    zone_width = max(8, min(config.safe_zone_width_px, image.width))
+    zone_height = max(8, min(config.safe_zone_height_px, image.height))
     zone = image.crop((0, 0, zone_width, zone_height)).convert("L")
     edges = zone.filter(ImageFilter.FIND_EDGES)
     if edges.width > 6 and edges.height > 6:
@@ -254,29 +256,37 @@ def enforce_logo_safe_zone(image: Image.Image, config: LogoConfig) -> None:
         f"upper-left {width}x{height}px contains likely text, product, icon, or important detail "
         f"(edge_mean={result['edge_mean']:.3f}, "
         f"edge_fraction={result['edge_fraction']:.4f}). "
-        "Repair or regenerate the image before adding the logo. "
-        "Use --skip-logo-safe-check only when the user explicitly accepts the overlap risk."
+        "Skipped this image."
     )
 
 
-def resolve_position(base_size: tuple[int, int], overlay_size: tuple[int, int], position: str, margin: int) -> tuple[int, int]:
+def resolve_position(
+    base_size: tuple[int, int],
+    overlay_size: tuple[int, int],
+    position: str,
+    margin: int,
+    margin_x: int | None = None,
+    margin_y: int | None = None,
+) -> tuple[int, int]:
     bw, bh = base_size
     ow, oh = overlay_size
     pos = position.lower()
+    mx = margin if margin_x is None else margin_x
+    my = margin if margin_y is None else margin_y
     x_map = {
-        "left": margin,
+        "left": mx,
         "center": (bw - ow) // 2,
-        "right": bw - ow - margin,
+        "right": bw - ow - mx,
     }
     y_map = {
-        "top": margin,
+        "top": my,
         "center": (bh - oh) // 2,
-        "bottom": bh - oh - margin,
+        "bottom": bh - oh - my,
     }
     if "-" in pos:
         vertical, horizontal = pos.split("-", 1)
-        x = x_map.get(horizontal, margin)
-        y = y_map.get(vertical, margin)
+        x = x_map.get(horizontal, mx)
+        y = y_map.get(vertical, my)
     else:
         x = x_map.get(pos, (bw - ow) // 2)
         y = y_map.get(pos, (bh - oh) // 2)
@@ -296,7 +306,17 @@ def apply_logo(image: Image.Image, config: LogoConfig) -> Image.Image:
     logo = scale_overlay(logo, max(1, int(image.width * config.max_width_ratio)))
     logo = set_opacity(logo, config.opacity)
     out = image.convert("RGBA")
-    out.alpha_composite(logo, resolve_position(out.size, logo.size, config.position, config.margin))
+    out.alpha_composite(
+        logo,
+        resolve_position(
+            out.size,
+            logo.size,
+            config.position,
+            config.margin,
+            margin_x=config.margin_left,
+            margin_y=config.margin_top,
+        ),
+    )
     return out
 
 
@@ -429,7 +449,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--logo",
         nargs="?",
         const=DEFAULT_LOGO_PATH,
-        help="Enable a logo. With no path, use bundled assets/logo1-90x130.png in the top-left corner with a 10px margin.",
+        help="Enable a logo. With no path, use bundled assets/logo1-90x130.png at top-left with 40px left and 30px top margins.",
     )
     parser.add_argument(
         "--skip-logo-safe-check",

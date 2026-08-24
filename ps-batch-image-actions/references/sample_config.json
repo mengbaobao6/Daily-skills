@@ -8,18 +8,16 @@
   },
   "background": "white",
   "logo": {
-    "enabled": false,
+    "enabled": true,
     "path": "assets/logo1-90x130.png",
     "position": "top-left",
     "margin": 10,
+    "margin_top": 30,
+    "margin_left": 40,
     "max_width_ratio": 0.16,
     "opacity": 0.92,
-    "safe_zone_check": true,
-    "safe_zone_width_ratio": 0.18,
-    "safe_zone_height_ratio": 0.18,
-    "safe_zone_edge_threshold": 32,
-    "safe_zone_max_edge_mean": 4.0,
-    "safe_zone_max_edge_fraction": 0.008
+    "safe_zone_width_px": 140,
+    "safe_zone_height_px": 170
   },
   "watermark": {
     "enabled": false,
@@ -41,7 +39,7 @@
   },
   "export": {
     "format": "jpg",
-    "quality": 92,
+    "quality": 80,
     "prefix": "product",
     "start_index": 1,
     "padding": 3,

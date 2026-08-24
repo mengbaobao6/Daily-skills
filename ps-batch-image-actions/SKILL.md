@@ -13,7 +13,9 @@ When the logo task follows `product-plan` or targets a product project under `E:
 - Process only image files in `营销图`; do not recurse into the product root or treat reference images as generated marketing images.
 - Preserve every no-logo source image, its dimensions, and its format unless the user explicitly requests conversion or resizing.
 - Keep the matching source filename (`Image_01`, `Image_02`, and so on) by setting `export.keep_original_name: true`; the separate `+logo图` folder identifies the logo version. Never overwrite files already present there without explicit permission.
-- Keep the top-left 18%×18% safe-zone check enabled. If an image fails, report it for regeneration or repair instead of forcing the logo over content.
+- Keep the top-left 140×170 px safe-zone check enabled. If an image fails the check, report which image failed and skip it, then continue with the next image. Do not require repair or regeneration, and do not force the logo over content.
+- Use the bundled default logo `assets/logo1-90x130.png` by default. Only ask for another logo path when the user explicitly requests a different logo.
+- Default export is JPG at quality 80; keep this unless the user explicitly asks for a different quality or format.
 
 ## Quick Start
 
@@ -32,17 +34,19 @@ python scripts/batch_image_ps_actions.py --input "D:\input-images" --output "D:\
 ## Workflow
 
 1. Confirm the input folder, output folder, and whether subfolders should be included.
-2. Ask for optional assets only when needed: logo image path, watermark image path, or watermark text.
+2. Use bundled `assets/logo1-90x130.png` by default for logo placement. Ask for a different logo only when the user explicitly requests one.
 3. Choose resize behavior:
    - `fit`: preserve the whole image and pad the canvas.
    - `fill`: crop to fill the exact output size.
    - `stretch`: force exact dimensions.
    - `none`: keep source size unless other steps change it.
 4. Use `background: "white"` for ecommerce white-background export. This flattens transparency onto white and also uses white as padding canvas.
-5. Configure logo placement with `logo.enabled`, `logo.path`, `logo.position`, `logo.margin`, `logo.max_width_ratio`, and `logo.opacity`. The default position is top-left with a safe margin.
-6. Configure watermarks using either `watermark.text` or `watermark.image_path`. Use `tile: true` for repeated watermark coverage.
-7. Apply color adjustments with `brightness`, `contrast`, `saturation`, `sharpness`, and `autocontrast`.
-8. Export with the requested `format`, `quality`, and naming pattern.
+5. Configure logo placement with `logo.enabled`, `logo.path`, `logo.position`, `logo.margin`, `logo.max_width_ratio`, and `logo.opacity`. The default logo is bundled `assets/logo1-90x130.png`; the default position is `top-left` with `margin: 10`, placing it 10 pixels from the upper and left edges.
+6. Keep `logo.safe_zone_check: true` for top-left logos. The script checks the upper-left 140×170 px exclusion zone and blocks that image when edge density indicates likely text, product, icon, or another important detail. A blocked image is reported by filename and skipped; processing continues with the next image. Do not require repair or regeneration.
+7. Use `--skip-logo-safe-check` only when the user explicitly accepts the overlap risk. Do not use it merely to make a batch complete.
+8. Configure watermarks using either `watermark.text` or `watermark.image_path`. Use `tile: true` for repeated watermark coverage.
+9. Apply color adjustments with `brightness`, `contrast`, `saturation`, `sharpness`, and `autocontrast`.
+10. Export with the requested `format`, `quality`, and naming pattern. Default export is JPG at quality 80.
 
 ## Script Notes
 
