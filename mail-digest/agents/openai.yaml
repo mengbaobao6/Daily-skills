@@ -1,0 +1,4 @@
+interface:
+  display_name: "邮箱汇总分析"
+  short_description: "汇总多个邮箱近期邮件，合并去重、分类提炼，输出待办清单与时效风险提示"
+  default_prompt: "Use $mail-digest to summarize recent emails across my mailboxes and tell me what needs attention."

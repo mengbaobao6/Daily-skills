@@ -1,0 +1,5 @@
+# 凭据与缓存 —— 请勿提交
+**/aliyun-mail-cred.json
+**/credentials*.json
+__pycache__/
+*.pyc
