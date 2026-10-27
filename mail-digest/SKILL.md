@@ -47,6 +47,7 @@ python scripts/aliyun-mail-fetch.py --hours 24 --limit 15 --preview 200
 - **忽略清单**（不列入汇总与待办，避免每日重复刷屏）：
   - `mengbaobao6/vue-front` 仓库的 GitHub / Dependabot 安全告警。
   - 阿里外贸邮「账号异地登录提醒」（法兰克福 SMTP 登录等）——由自有独立站通过该邮箱 SMTP 发信触发，属正常业务行为，不再列为安全项。
+  - 采购直达 RFQ 商机提醒（「金牌RFQ」「优享商机推荐」等，发件人 `alisourcepro@service.alibaba.com`）——用户 2026-10-09 要求不再提醒。
 - 以下**时效性风险必须置顶**并在待办清单中排最前：
   - 发货逾期倒计时（「距逾期仅剩 N 天」）
   - 买家已付预付款待发货、TT 到账需关联线上订单
