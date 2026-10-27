@@ -20,8 +20,9 @@ description: 多邮箱邮件汇总分析。QQ邮箱走 qq-mail 连接器、阿�
 
 ### B. 阿里企业邮箱（IMAP 脚本，无需连接器）
 ```bash
-python scripts/aliyun-mail-fetch.py --hours 24 --limit 15 --preview 200
+python scripts/aliyun-mail-fetch.py --hours 24 --limit 40 --preview 200
 ```
+- ⚠️ **`--limit` 一律用 40**：早期示例的 15 会把时间窗截断、漏掉邮件。
 - 输出：账号、窗口、数量；每封含 时间 / 已读 / 星标 / 附件标记、发件人、主题、正文预览、message-id。
 - 脚本已内置按「主题 + 发件人 + 分钟」去重，并在抬头标注合并数量。
 - 看某封全文：`python scripts/aliyun-mail-fetch.py --show "<message-id>"`

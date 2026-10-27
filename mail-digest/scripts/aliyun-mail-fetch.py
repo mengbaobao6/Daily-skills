@@ -7,8 +7,8 @@
       供上层（AI 助手 / 自动化任务）做分类与汇总。
 
 用法示例：
-    # 最近 24 小时，最多 15 封，附 200 字正文预览
-    python scripts/aliyun-mail-fetch.py --hours 24 --limit 15 --preview 200
+    # 最近 24 小时，最多 40 封，附 200 字正文预览
+    python scripts/aliyun-mail-fetch.py --hours 24 --limit 40 --preview 200
 
     # 最近 72 小时，JSON 格式输出
     python scripts/aliyun-mail-fetch.py --hours 72 --limit 30 --format json
@@ -318,7 +318,7 @@ def main():
     ap.add_argument("--pass", dest="password")
     ap.add_argument("--site", default="cn", choices=sorted(SITES.keys()))
     ap.add_argument("--hours", type=int, default=24, help="时间窗口小时数，默认 24")
-    ap.add_argument("--limit", type=int, default=15, help="最多返回封数，默认 15")
+    ap.add_argument("--limit", type=int, default=40, help="最多返回封数，默认 40（过小会截断时间窗、漏邮件）")
     ap.add_argument("--preview", type=int, default=0, help="正文预览字符数，0 表示不取正文字符")
     ap.add_argument("--unread-only", action="store_true", help="只返回未读邮件")
     ap.add_argument("--format", default="text", choices=["text", "json"])
